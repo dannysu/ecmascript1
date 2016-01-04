@@ -13,8 +13,9 @@ class Token {
 }
 
 const tokenTypes = {
-    comment: 'comment',
-    eof:     'eof'
+    comment:        'comment',
+    stringLiteral:  'stringLiteral',
+    eof:            'eof'
 };
 
 /*
@@ -78,6 +79,24 @@ function not(fn) {
     };
 }
 
+function or(fn1, fn2) {
+    return function(c) {
+        return fn1(c) || fn2(c);
+    };
+}
+
+function oneOf(str) {
+    return function(c) {
+        return str.indexOf(c) >= 0;
+    };
+}
+
+function addToken(type) {
+    const token = new Token(type, source.substring(start, pos), start, pos);
+    tokens.push(token);
+    ignore();
+}
+
 // Whitespace characters as specified by ES1
 function isWhitespace(c) {
     if (c === '\u0009' || c === '\u000B' ||
@@ -95,9 +114,37 @@ function isLineTerminator(c) {
     return false;
 }
 
+function isQuoteChar(c) {
+    return c === '"' || c === "'";
+}
+
 /*
- * Variable State Functions
+ * Various State Functions
  */
+function lexQuote(quoteChar) {
+    return function() {
+        do {
+            // Keep consuming characters unless we encounter line
+            // terminator, \, or the quote char.
+            acceptRun(not(or(isLineTerminator, oneOf("\\" + quoteChar))));
+
+            const c = next();
+            if (isLineTerminator(c) || c === null) {
+                // If we somehow reached EOL or EOF without encountering
+                // corresponding quote char then this string is incomplete.
+                throw new SyntaxError('Illegal token: ' + source.substring(start, pos));
+            }
+            else if (c === quoteChar) {
+                addToken(tokenTypes.stringLiteral);
+                return lexText;
+            }
+            else if (c === "\\" && peek() === quoteChar) {
+                pos += 2;
+            }
+        } while(true);
+    };
+}
+
 function lexSingleLineComment() {
     // Single line comment is only terminated by a line terminator
     // character and nothing else
@@ -138,6 +185,9 @@ function lexText() {
         if (c === null) {
             // EOF
             return null;
+        }
+        else if (isQuoteChar(c)) {
+            return lexQuote(c);
         }
         else if (isWhitespace(c)) {
             ignore();
