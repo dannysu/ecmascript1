@@ -13,10 +13,11 @@ class Token {
 }
 
 const tokenTypes = {
-    comment:        'comment',
-    stringLiteral:  'stringLiteral',
-    punctuator:     'punctuator',
-    eof:            'eof'
+    comment:         'comment',
+    stringLiteral:   'stringLiteral',
+    numericLiteral:  'numericLiteral',
+    punctuator:      'punctuator',
+    eof:             'eof'
 };
 
 /*
@@ -169,9 +170,89 @@ function isPunctuator(word) {
     }
 }
 
+function isAlphaChar(c) {
+    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
+}
+
+function isDecimalDigit(c) {
+    return c >= '0' && c <= '9';
+}
+
+function isOctalDigit(c) {
+    return c >= '0' && c <= '7';
+}
+
+function isHexDigit(c) {
+    return (c >= '0' && c <= '9') ||
+        (c >= 'a' && c <= 'f') ||
+        (c >= 'A' && c <= 'F');
+}
+
+function isIdentifierChar(c) {
+    return isAlphaChar(c) || c === '$' || c === '_' || isDecimalDigit(c);
+}
+
 /*
  * Various State Functions
  */
+function lexNumber() {
+    let validator = isDecimalDigit;
+
+    // If the first digit is 0, then need to first determine whether it's an
+    // octal number, or a hex number, or a decimal number.
+    if (accept(oneOf("0"))) {
+        // If number started with 0x or 0X, then it's a hex number.
+        if (accept(oneOf("xX"))) {
+            validator = isHexDigit;
+
+            // The hex number needs to at least be followed by some digit.
+            if (!accept(validator)) {
+                throw new SyntaxError("Invalid number: " + source.substring(start, pos + 1));
+            }
+        }
+        // If number starts with 0 followed by an octal digit, then it's an
+        // octal number.
+        else if (accept(isOctalDigit)) {
+            validator = isOctalDigit;
+        }
+        // If a 0 isn't a hex nor an octal number, then it's invalid.
+        else if (accept(isDecimalDigit)) {
+            throw new SyntaxError("Invalid number: " + source.substring(start, pos));
+        }
+    }
+
+    // Keep on consuming valid digits until it runs out
+    acceptRun(validator);
+
+    if (validator == isDecimalDigit) {
+        // A number could have a decimal in it, followed by a sequence of valid
+        // digits again.
+        if (accept(oneOf("."))) {
+            acceptRun(validator);
+        }
+
+        if (accept(oneOf("eE"))) {
+            accept(oneOf("+-"));
+            if (!accept(validator)) {
+                throw new SyntaxError("Invalid number: " + source.substring(start, pos + 1));
+            }
+            acceptRun(validator);
+        }
+    }
+
+    // A number cannot be immediately followed by characters that could be used
+    // for identifiers or keywords. It also cannot be immediately followed by
+    // a string.
+    const c = peek();
+    if (isIdentifierChar(c) || isQuoteChar(c) || oneOf(".eE")(c)) {
+        throw new SyntaxError("Invalid number: " + source.substring(start, pos + 1));
+    }
+
+    addToken(tokenTypes.numericLiteral);
+
+    return lexText();
+}
+
 function lexPunctuator() {
     // This loop will handle the situation when valid punctuators are next
     // to each other. E.g. ![x];
@@ -269,6 +350,10 @@ function lexText() {
         }
         else if (isQuoteChar(c)) {
             return lexQuote(c);
+        }
+        else if (isDecimalDigit(c) || (c === '.' && isDecimalDigit(peek()))) {
+            backup();
+            return lexNumber;
         }
         else if (isWhitespace(c)) {
             ignore();
