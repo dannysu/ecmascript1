@@ -13,11 +13,12 @@ class Token {
 }
 
 const tokenTypes = {
-    eof: 'eof'
+    comment: 'comment',
+    eof:     'eof'
 };
 
 /*
- * Lexer States
+ * Lexer States and Helper Functions
  */
 let tokens = [];
 let stateFn = null;
@@ -60,6 +61,23 @@ function next() {
     return c;
 }
 
+function acceptRun(validator) {
+    let c;
+    do {
+        c = peek();
+        if (c === null) {
+            break;
+        }
+    } while(validator(c) && ++pos);
+}
+
+function not(fn) {
+    return function(c) {
+        const result = fn(c);
+        return !result;
+    };
+}
+
 // Whitespace characters as specified by ES1
 function isWhitespace(c) {
     if (c === '\u0009' || c === '\u000B' ||
@@ -70,8 +88,52 @@ function isWhitespace(c) {
     return false;
 }
 
+function isLineTerminator(c) {
+    if (c === '\n' || c === '\r') {
+        return true;
+    }
+    return false;
+}
+
+/*
+ * Variable State Functions
+ */
+function lexSingleLineComment() {
+    // Single line comment is only terminated by a line terminator
+    // character and nothing else
+    acceptRun(not(isLineTerminator));
+    ignore();
+    return lexText;
+}
+
+function lexMultiLineComment() {
+    do {
+        // Multi-line comment is terminated if we see * followed by /
+        const nextTwo = source.substr(pos, 2);
+        if (nextTwo === '*/') {
+            pos += 2;
+            ignore();
+            return lexText;
+        }
+
+        next();
+    } while(true);
+}
+
 function lexText() {
     do {
+        // Examine the next 2 characters to see if we're encountering code comments
+        const nextTwo = source.substr(pos, 2);
+        if (nextTwo === '//') {
+            pos += 2;
+            return lexSingleLineComment;
+        }
+        else if (nextTwo === '/*') {
+            pos += 2;
+            return lexMultiLineComment;
+        }
+
+        // Consume the next character and decide what to do
         const c = next();
         if (c === null) {
             // EOF
