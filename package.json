@@ -4,7 +4,7 @@
   "description": "ECMAScript 1 Parser",
   "main": "index.js",
   "scripts": {
-    "test": "mocha"
+    "test": "mocha test/lexer/*"
   },
   "keywords": [
     "es1",

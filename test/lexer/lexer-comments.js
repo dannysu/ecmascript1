@@ -2,7 +2,7 @@
 
 const should = require('should');
 
-const lexer = require('../src/lexer.js');
+const lexer = require('../../src/lexer.js');
 
 describe('lexer', function() {
     describe('parse code containing single-line comments', function() {
