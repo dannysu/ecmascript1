@@ -52,26 +52,28 @@ describe('lexer', function() {
             `;
             lexer.setInput(input);
 
+            let token = null;
+
             // Lexer separates out the longest match
-            const token1 = lexer.nextToken();
-            should.exist(token1);
-            token1.type.should.be.eql(lexer.tokenTypes.punctuator);
-            token1.value.should.be.eql('++');
+            token = lexer.nextToken();
+            token.type.should.be.eql(lexer.tokenTypes.punctuator);
+            token.value.should.be.eql('++');
 
-            const token2 = lexer.nextToken();
-            should.exist(token2);
-            token2.type.should.be.eql(lexer.tokenTypes.punctuator);
-            token2.value.should.be.eql('[');
+            token = lexer.nextToken();
+            token.type.should.be.eql(lexer.tokenTypes.punctuator);
+            token.value.should.be.eql('[');
 
-            const token3 = lexer.nextToken();
-            should.exist(token3);
-            token3.type.should.be.eql(lexer.tokenTypes.punctuator);
-            token3.value.should.be.eql(']');
+            token = lexer.nextToken();
+            token.type.should.be.eql(lexer.tokenTypes.identifier);
+            token.value.should.be.eql('x');
 
-            const token4 = lexer.nextToken();
-            should.exist(token4);
-            token4.type.should.be.eql(lexer.tokenTypes.punctuator);
-            token4.value.should.be.eql(';');
+            token = lexer.nextToken();
+            token.type.should.be.eql(lexer.tokenTypes.punctuator);
+            token.value.should.be.eql(']');
+
+            token = lexer.nextToken();
+            token.type.should.be.eql(lexer.tokenTypes.punctuator);
+            token.value.should.be.eql(';');
 
             // Should be EOF here
             const eofToken = lexer.nextToken();

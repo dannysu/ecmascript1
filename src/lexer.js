@@ -17,6 +17,8 @@ const tokenTypes = {
     stringLiteral:   'stringLiteral',
     numericLiteral:  'numericLiteral',
     punctuator:      'punctuator',
+    keyword:         'keyword',
+    identifier:      'identifier',
     eof:             'eof'
 };
 
@@ -192,9 +194,117 @@ function isIdentifierChar(c) {
     return isAlphaChar(c) || c === '$' || c === '_' || isDecimalDigit(c);
 }
 
+function isKeyword(word) {
+    switch (word.length) {
+        case 2:
+            switch (word) {
+                case 'if':
+                case 'in':
+                case 'do':
+                    return true;
+            }
+            return false;
+
+        case 3:
+            switch (word) {
+                case 'for':
+                case 'new':
+                case 'var':
+                case 'try':
+                    return true;
+            }
+            return false;
+
+        case 4:
+            switch (word) {
+                case 'else':
+                case 'this':
+                case 'void':
+                case 'with':
+                case 'case':
+                case 'enum':
+                    return true;
+            }
+            return false;
+
+        case 5:
+            switch (word) {
+                case 'break':
+                case 'while':
+                case 'catch':
+                case 'class':
+                case 'const':
+                case 'super':
+                case 'throw':
+                    return true;
+            }
+            return false;
+
+        case 6:
+            switch (word) {
+                case 'delete':
+                case 'return':
+                case 'typeof':
+                case 'import':
+                case 'switch':
+                case 'export':
+                    return true;
+            }
+            return false;
+
+        case 7:
+            switch (word) {
+                case 'default':
+                case 'extends':
+                case 'finally':
+                    return true;
+            }
+            return false;
+
+        case 8:
+            switch (word) {
+                case 'continue':
+                case 'function':
+                case 'debugger':
+                    return true;
+            }
+            return false;
+
+        default:
+            return false;
+    }
+}
+
 /*
  * Various State Functions
  */
+function lexIdentifier() {
+    // Keywords and reserved keywords will be a subset of the words that
+    // can be formed by identifier chars.
+    // Keep accumulating chars and check for keyword later.
+    acceptRun(isIdentifierChar);
+
+    // Make sure identifier didn't start with a decimal digit
+    const firstChar = source[start];
+    if (isDecimalDigit(firstChar)) {
+        throw new SyntaxError("Invalid identifier: " + source.substring(start, pos));
+    }
+
+    const c = peek();
+    if (isQuoteChar(c)) {
+        throw new SyntaxError("Invalid identifier: " + source.substring(start, pos + 1));
+    }
+
+    const word = source.substring(start, pos);
+    if (isKeyword(word)) {
+        addToken(tokenTypes.keyword);
+    }
+    else {
+        addToken(tokenTypes.identifier);
+    }
+    return lexText;
+}
+
 function lexNumber() {
     let validator = isDecimalDigit;
 
@@ -361,6 +471,10 @@ function lexText() {
         else if (isPunctuatorChar(c)) {
             backup();
             return lexPunctuator;
+        }
+        else if (isIdentifierChar(c)) {
+            backup();
+            return lexIdentifier;
         }
         else {
             // TODO: For now, also ignore everything else until they're implemented.
