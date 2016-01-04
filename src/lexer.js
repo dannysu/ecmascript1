@@ -15,6 +15,7 @@ class Token {
 const tokenTypes = {
     comment:        'comment',
     stringLiteral:  'stringLiteral',
+    punctuator:     'punctuator',
     eof:            'eof'
 };
 
@@ -60,6 +61,20 @@ function next() {
         pos++;
     }
     return c;
+}
+
+function backup() {
+    pos--;
+}
+
+function accept(validator) {
+    const c = peek();
+    if (c !== null && validator(c)) {
+        pos++;
+        return true;
+    }
+
+    return false;
 }
 
 function acceptRun(validator) {
@@ -118,9 +133,75 @@ function isQuoteChar(c) {
     return c === '"' || c === "'";
 }
 
+function isPunctuatorChar(c) {
+    const chars = [
+        '=', '.', '-', '%', '}', '>', ',', '*', '[', '<', '!', '/',
+        ']', '~', '&', '(', ';', '?', '|', ')', ':', '+', '^', '{'
+    ];
+
+    return (chars.indexOf(c) >= 0);
+}
+
+function isPunctuator(word) {
+    switch (word.length) {
+        case 1:
+            return [
+                '=', '.', '-', '%', '}', '>', ',', '*', '[', '<', '!', '/',
+                ']', '~', '&', '(', ';', '?', '|', ')', ':', '+', '^', '{'
+            ].indexOf(word) >= 0;
+
+        case 2:
+            return [
+                '!=', '*=', '&&', '<<', '/=', '||', '>>', '&=', '==', '++',
+                '|=', '<=', '--', '+=', '^=', '>=', '-=', '%='
+            ].indexOf(word) >= 0;
+
+        case 3:
+            return [
+                '>>=', '>>>', '<<='
+            ].indexOf(word) >= 0;
+
+        case 4:
+            return word === '>>>=';
+
+        default:
+            return false;
+    }
+}
+
 /*
  * Various State Functions
  */
+function lexPunctuator() {
+    // This loop will handle the situation when valid punctuators are next
+    // to each other. E.g. ![x];
+    while (accept(isPunctuatorChar)) {
+        let word = source.substring(start, pos);
+
+        // Keep accumulating punctuator chars, and as soon as the accumulated
+        // word isn't a valid punctuator, we stop and backup to take the
+        // longest valid punctuator before continuing.
+        if (!isPunctuator(word)) {
+            backup();
+            addToken(tokenTypes.punctuator);
+            return lexText;
+        }
+    }
+
+    // Handle the case when punctuator is by itself and not next to
+    // other punctuators.
+    const word = source.substring(start, pos);
+    if (isPunctuator(word)) {
+        addToken(tokenTypes.punctuator);
+        return lexText;
+    }
+    else {
+        // This shouldn't ever happen, but throw an exception to make sure we
+        // catch it if it does.
+        throw new SyntaxError('Invalid punctuator: ' + word);
+    }
+}
+
 function lexQuote(quoteChar) {
     return function() {
         do {
@@ -191,6 +272,10 @@ function lexText() {
         }
         else if (isWhitespace(c)) {
             ignore();
+        }
+        else if (isPunctuatorChar(c)) {
+            backup();
+            return lexPunctuator;
         }
         else {
             // TODO: For now, also ignore everything else until they're implemented.
