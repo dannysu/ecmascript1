@@ -1,0 +1,20 @@
+{
+  "name": "ecmascript1",
+  "version": "0.1.0",
+  "description": "ECMAScript 1 Parser",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha"
+  },
+  "keywords": [
+    "es1",
+    "ecmascript1",
+    "parser"
+  ],
+  "author": "Danny Su <contact@dannysu.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "mocha": "^2.3.4",
+    "should": "^8.0.2"
+  }
+}
