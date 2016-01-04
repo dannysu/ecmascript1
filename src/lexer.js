@@ -476,9 +476,11 @@ function lexText() {
             backup();
             return lexIdentifier;
         }
-        else {
-            // TODO: For now, also ignore everything else until they're implemented.
+        else if (isLineTerminator(c)) {
             ignore();
+        }
+        else {
+            throw new SyntaxError('Unexpected character: ' + c);
         }
     } while(true);
 }

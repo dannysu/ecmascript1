@@ -21,9 +21,26 @@ describe('lexer', function() {
         });
     });
 
+    describe('invalid character', function() {
+        it('should fail', function() {
+            const input = `
+                #;
+            `;
+
+            try {
+                lexer.setInput(input);
+                throw new Error('Expecting error from bad syntax');
+            }
+            catch (ex) {
+                (ex instanceof SyntaxError).should.be.eql(true);
+            }
+        });
+    });
+
     describe('parse valid keywords', function() {
         it('should succeed', function() {
             const input = `
+                // #@#
                 while;
                 delete;
             `;
