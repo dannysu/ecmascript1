@@ -82,12 +82,15 @@ function accept(validator) {
 
 function acceptRun(validator) {
     let c;
+    let startedAt = pos;
     do {
         c = peek();
         if (c === null) {
             break;
         }
     } while(validator(c) && ++pos);
+
+    return (pos > startedAt);
 }
 
 function not(fn) {
@@ -395,23 +398,35 @@ function lexPunctuator() {
 
 function lexQuote(quoteChar) {
     return function() {
+        let escapeEncountered = false;
         do {
             // Keep consuming characters unless we encounter line
             // terminator, \, or the quote char.
-            acceptRun(not(or(isLineTerminator, oneOf("\\" + quoteChar))));
+            if (acceptRun(not(or(isLineTerminator, oneOf("\\" + quoteChar))))) {
+                escapeEncountered = false;
+            }
 
             const c = next();
-            if (isLineTerminator(c) || c === null) {
-                // If we somehow reached EOL or EOF without encountering
-                // corresponding quote char then this string is incomplete.
+            if (c === null) {
+                // If we reached EOF without the closing quote char, then this string is incomplete.
                 throw new SyntaxError('Illegal token: ' + source.substring(start, pos));
             }
-            else if (c === quoteChar) {
-                addToken(tokenTypes.stringLiteral);
-                return lexText;
+            else if (!escapeEncountered) {
+                if (isLineTerminator(c)) {
+                    // If we somehow reached EOL without encountering the
+                    // ending quote char then this string is incomplete.
+                    throw new SyntaxError('Illegal token: ' + source.substring(start, pos));
+                }
+                else if (c === quoteChar) {
+                    addToken(tokenTypes.stringLiteral);
+                    return lexText;
+                }
+                else if (c === "\\") {
+                    escapeEncountered = true;
+                }
             }
-            else if (c === "\\" && peek() === quoteChar) {
-                pos += 2;
+            else {
+                escapeEncountered = false;
             }
         } while(true);
     };

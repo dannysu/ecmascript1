@@ -5,11 +5,28 @@ const should = require('should');
 const lexer = require('../../src/lexer.js');
 
 describe('lexer', function() {
-    describe('parse strings surrounded using "', function() {
+    describe('parse string with escape sequence', function() {
         it('should emit string token', function() {
             const input = `
-                "a b'cdwrefas\\a\\"fdsa\\'fda"
+                "\\\\"
             `;
+            lexer.setInput(input);
+
+            const stringToken = lexer.nextToken();
+            should.exist(stringToken);
+            stringToken.type.should.be.eql(lexer.tokenTypes.stringLiteral);
+            stringToken.value.should.be.eql('"\\\\"');
+
+            // Should be EOF
+            const eofToken = lexer.nextToken();
+            should.exist(eofToken);
+            eofToken.type.should.be.eql(lexer.tokenTypes.eof);
+        });
+    });
+
+    describe('parse strings surrounded using "', function() {
+        it('should emit string token', function() {
+            const input = "\"a b'cdwrefas\\a\\\"fdsa\\'fda\"";
             lexer.setInput(input);
 
             const stringToken = lexer.nextToken();
@@ -57,7 +74,7 @@ describe('lexer', function() {
     });
 
     describe('parse multi-line string', function() {
-        it('should fail', function() {
+        it('should fail without escape char', function() {
             const input = `
                 "string over
                 multiple lines"
@@ -71,13 +88,28 @@ describe('lexer', function() {
                 (ex instanceof SyntaxError).should.be.eql(true);
             }
         });
+
+        it('should succeed with escape char', function() {
+            const input = `
+                "string over \\
+                multiple lines"
+            `;
+            lexer.setInput(input);
+
+            const stringToken = lexer.nextToken();
+            should.exist(stringToken);
+            stringToken.type.should.be.eql(lexer.tokenTypes.stringLiteral);
+
+            // Should be EOF
+            const eofToken = lexer.nextToken();
+            should.exist(eofToken);
+            eofToken.type.should.be.eql(lexer.tokenTypes.eof);
+        });
     });
 
     describe("parse strings surrounded using '", function() {
         it('should emit string token', function() {
-            const input = `
-                'a b\\'cdwrefas\\a\\"fdsa'
-            `;
+            const input = "'a b\\'cdwrefas\\a\\\"fdsa'";
             lexer.setInput(input);
 
             const stringToken = lexer.nextToken();
