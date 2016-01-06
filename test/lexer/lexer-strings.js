@@ -2,7 +2,8 @@
 
 const should = require('should');
 
-const lexer = require('../../src/lexer.js');
+const Lexer = require('../../src/lexer.js');
+const tokenTypes = require('../../src/token.js').tokenTypes;
 
 describe('lexer', function() {
     describe('parse string with escape sequence', function() {
@@ -10,34 +11,34 @@ describe('lexer', function() {
             const input = `
                 "\\\\"
             `;
-            lexer.setInput(input);
+            const lexer = new Lexer(input);
 
             const stringToken = lexer.nextToken();
             should.exist(stringToken);
-            stringToken.type.should.be.eql(lexer.tokenTypes.stringLiteral);
+            stringToken.type.should.be.eql(tokenTypes.stringLiteral);
             stringToken.value.should.be.eql('"\\\\"');
 
             // Should be EOF
             const eofToken = lexer.nextToken();
             should.exist(eofToken);
-            eofToken.type.should.be.eql(lexer.tokenTypes.eof);
+            eofToken.type.should.be.eql(tokenTypes.eof);
         });
     });
 
     describe('parse strings surrounded using "', function() {
         it('should emit string token', function() {
             const input = "\"a b'cdwrefas\\a\\\"fdsa\\'fda\"";
-            lexer.setInput(input);
+            const lexer = new Lexer(input);
 
             const stringToken = lexer.nextToken();
             should.exist(stringToken);
-            stringToken.type.should.be.eql(lexer.tokenTypes.stringLiteral);
+            stringToken.type.should.be.eql(tokenTypes.stringLiteral);
             stringToken.value.should.be.eql("\"a b'cdwrefas\\a\\\"fdsa\\'fda\"");
 
             // Should be EOF
             const eofToken = lexer.nextToken();
             should.exist(eofToken);
-            eofToken.type.should.be.eql(lexer.tokenTypes.eof);
+            eofToken.type.should.be.eql(tokenTypes.eof);
         });
     });
 
@@ -48,7 +49,7 @@ describe('lexer', function() {
             `;
 
             try {
-                lexer.setInput(input);
+                const lexer = new Lexer(input);
                 throw new Error('Expecting error from bad syntax');
             }
             catch (ex) {
@@ -64,7 +65,7 @@ describe('lexer', function() {
             `;
 
             try {
-                lexer.setInput(input);
+                const lexer = new Lexer(input);
                 throw new Error('Expecting error from bad syntax');
             }
             catch (ex) {
@@ -81,7 +82,7 @@ describe('lexer', function() {
             `;
 
             try {
-                lexer.setInput(input);
+                const lexer = new Lexer(input);
                 throw new Error('Expecting error from bad syntax');
             }
             catch (ex) {
@@ -94,33 +95,33 @@ describe('lexer', function() {
                 "string over \\
                 multiple lines"
             `;
-            lexer.setInput(input);
+            const lexer = new Lexer(input);
 
             const stringToken = lexer.nextToken();
             should.exist(stringToken);
-            stringToken.type.should.be.eql(lexer.tokenTypes.stringLiteral);
+            stringToken.type.should.be.eql(tokenTypes.stringLiteral);
 
             // Should be EOF
             const eofToken = lexer.nextToken();
             should.exist(eofToken);
-            eofToken.type.should.be.eql(lexer.tokenTypes.eof);
+            eofToken.type.should.be.eql(tokenTypes.eof);
         });
     });
 
     describe("parse strings surrounded using '", function() {
         it('should emit string token', function() {
             const input = "'a b\\'cdwrefas\\a\\\"fdsa'";
-            lexer.setInput(input);
+            const lexer = new Lexer(input);
 
             const stringToken = lexer.nextToken();
             should.exist(stringToken);
-            stringToken.type.should.be.eql(lexer.tokenTypes.stringLiteral);
+            stringToken.type.should.be.eql(tokenTypes.stringLiteral);
             stringToken.value.should.be.eql("'a b\\'cdwrefas\\a\\\"fdsa'");
 
             // Should be EOF
             const eofToken = lexer.nextToken();
             should.exist(eofToken);
-            eofToken.type.should.be.eql(lexer.tokenTypes.eof);
+            eofToken.type.should.be.eql(tokenTypes.eof);
         });
     });
 });

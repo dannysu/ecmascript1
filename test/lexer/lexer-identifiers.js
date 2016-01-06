@@ -2,7 +2,8 @@
 
 const should = require('should');
 
-const lexer = require('../../src/lexer.js');
+const Lexer = require('../../src/lexer.js');
+const tokenTypes = require('../../src/token.js').tokenTypes;
 
 describe('lexer', function() {
     describe('identifier starting with a number', function() {
@@ -12,7 +13,7 @@ describe('lexer', function() {
             `;
 
             try {
-                lexer.setInput(input);
+                const lexer = new Lexer(input);
                 throw new Error('Expecting error from bad syntax');
             }
             catch (ex) {
@@ -28,7 +29,7 @@ describe('lexer', function() {
             `;
 
             try {
-                lexer.setInput(input);
+                const lexer = new Lexer(input);
                 throw new Error('Expecting error from bad syntax');
             }
             catch (ex) {
@@ -44,30 +45,30 @@ describe('lexer', function() {
                 while;
                 delete;
             `;
-            lexer.setInput(input);
+            const lexer = new Lexer(input);
 
             let token = null;
 
             token = lexer.nextToken();
-            token.type.should.be.eql(lexer.tokenTypes.keyword);
+            token.type.should.be.eql(tokenTypes.keyword);
             token.value.should.be.eql('while');
 
             token = lexer.nextToken();
-            token.type.should.be.eql(lexer.tokenTypes.punctuator);
+            token.type.should.be.eql(tokenTypes.punctuator);
             token.value.should.be.eql(';');
 
             token = lexer.nextToken();
-            token.type.should.be.eql(lexer.tokenTypes.keyword);
+            token.type.should.be.eql(tokenTypes.keyword);
             token.value.should.be.eql('delete');
 
             token = lexer.nextToken();
-            token.type.should.be.eql(lexer.tokenTypes.punctuator);
+            token.type.should.be.eql(tokenTypes.punctuator);
             token.value.should.be.eql(';');
 
             // Should be EOF
             const eofToken = lexer.nextToken();
             should.exist(eofToken);
-            eofToken.type.should.be.eql(lexer.tokenTypes.eof);
+            eofToken.type.should.be.eql(tokenTypes.eof);
         });
     });
 
@@ -79,46 +80,46 @@ describe('lexer', function() {
                 aB0$_;
                 Zzz;
             `;
-            lexer.setInput(input);
+            const lexer = new Lexer(input);
 
             let token = null;
 
             token = lexer.nextToken();
-            token.type.should.be.eql(lexer.tokenTypes.identifier);
+            token.type.should.be.eql(tokenTypes.identifier);
             token.value.should.be.eql('$');
 
             token = lexer.nextToken();
-            token.type.should.be.eql(lexer.tokenTypes.punctuator);
+            token.type.should.be.eql(tokenTypes.punctuator);
             token.value.should.be.eql(';');
 
             token = lexer.nextToken();
-            token.type.should.be.eql(lexer.tokenTypes.identifier);
+            token.type.should.be.eql(tokenTypes.identifier);
             token.value.should.be.eql('_');
 
             token = lexer.nextToken();
-            token.type.should.be.eql(lexer.tokenTypes.punctuator);
+            token.type.should.be.eql(tokenTypes.punctuator);
             token.value.should.be.eql(';');
 
             token = lexer.nextToken();
-            token.type.should.be.eql(lexer.tokenTypes.identifier);
+            token.type.should.be.eql(tokenTypes.identifier);
             token.value.should.be.eql('aB0$_');
 
             token = lexer.nextToken();
-            token.type.should.be.eql(lexer.tokenTypes.punctuator);
+            token.type.should.be.eql(tokenTypes.punctuator);
             token.value.should.be.eql(';');
 
             token = lexer.nextToken();
-            token.type.should.be.eql(lexer.tokenTypes.identifier);
+            token.type.should.be.eql(tokenTypes.identifier);
             token.value.should.be.eql('Zzz');
 
             token = lexer.nextToken();
-            token.type.should.be.eql(lexer.tokenTypes.punctuator);
+            token.type.should.be.eql(tokenTypes.punctuator);
             token.value.should.be.eql(';');
 
             // Should be EOF
             const eofToken = lexer.nextToken();
             should.exist(eofToken);
-            eofToken.type.should.be.eql(lexer.tokenTypes.eof);
+            eofToken.type.should.be.eql(tokenTypes.eof);
         });
     });
 });

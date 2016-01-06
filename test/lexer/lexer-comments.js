@@ -2,7 +2,8 @@
 
 const should = require('should');
 
-const lexer = require('../../src/lexer.js');
+const Lexer = require('../../src/lexer.js');
+const tokenTypes = require('../../src/token.js').tokenTypes;
 
 describe('lexer', function() {
     describe('parse code containing single-line comments', function() {
@@ -14,13 +15,13 @@ describe('lexer', function() {
 
                 // Lastly, this is the final single-line comment
             `;
-            lexer.setInput(input);
+            const lexer = new Lexer(input);
 
             // All code comments are ignored and not emitted as tokens.
             // Should be EOF here
             const token = lexer.nextToken();
             should.exist(token);
-            token.type.should.be.eql(lexer.tokenTypes.eof);
+            token.type.should.be.eql(tokenTypes.eof);
         });
     });
 
@@ -33,13 +34,13 @@ describe('lexer', function() {
                  * // everything is a comment
                  */
             `;
-            lexer.setInput(input);
+            const lexer = new Lexer(input);
 
             // All code comments are ignored and not emitted as tokens.
             // Should be EOF here
             const token = lexer.nextToken();
             should.exist(token);
-            token.type.should.be.eql(lexer.tokenTypes.eof);
+            token.type.should.be.eql(tokenTypes.eof);
         });
     });
 });

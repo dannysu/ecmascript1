@@ -1,97 +1,75 @@
 'use strict';
 
-/*
- * Token Definitions
- */
-class Token {
-    constructor(type, value, from, to) {
-        this.type = type;
-        this.value = value;
-        this.from = from;
-        this.to = to;
-    }
-}
+const Token = require('./token.js').Token;
+const tokenTypes = require('./token.js').tokenTypes;
 
-const tokenTypes = {
-    comment:         'comment',
-    stringLiteral:   'stringLiteral',
-    numericLiteral:  'numericLiteral',
-    punctuator:      'punctuator',
-    keyword:         'keyword',
-    identifier:      'identifier',
-    eof:             'eof'
-};
+function Lexer(sourceText) {
+    this.setInput(sourceText);
+}
 
 /*
  * Lexer States and Helper Functions
  */
-let tokens = [];
-let stateFn = null;
-let source = '';
-let start = 0;
-let pos = 0;
-let tokenIndex = 0;
-
-function reset(sourceText) {
-    tokens = [];
-    stateFn = lexText;
-    source = sourceText;
-    start = 0;
-    pos = 0;
-    tokenIndex = 0;
-}
+Lexer.prototype.reset = function(sourceText) {
+    this.tokens = [];
+    this.stateFn = this.lexText;
+    this.source = sourceText;
+    this.start = 0;
+    this.pos = 0;
+    this.tokenIndex = 0;
+};
 
 // Skips over the pending input before this point
-function ignore() {
-    start = pos;
-}
+Lexer.prototype.ignore = function() {
+    this.start = this.pos;
+};
 
 // Returns the next character in the source code
-function peek() {
-    if (pos >= source.length) {
+Lexer.prototype.peek = function() {
+    if (this.pos >= this.source.length) {
         // null represents EOF
         return null;
     }
 
-    const c = source[pos];
-    return c
-}
+    const c = this.source[this.pos];
+    return c;
+};
 
 // Returns the next character in the source code and advance position
-function next() {
-    const c = peek();
+Lexer.prototype.next = function() {
+    const c = this.peek();
     if (c !== null) {
-        pos++;
+        this.pos++;
     }
     return c;
-}
+};
 
-function backup() {
-    pos--;
-}
+Lexer.prototype.backup = function() {
+    this.pos--;
+};
 
-function accept(validator) {
-    const c = peek();
+Lexer.prototype.accept = function(validator) {
+    const c = this.peek();
     if (c !== null && validator(c)) {
-        pos++;
+        this.pos++;
         return true;
     }
 
     return false;
-}
+};
 
-function acceptRun(validator) {
+Lexer.prototype.acceptRun = function(validator) {
     let c;
-    let startedAt = pos;
+    let startedAt = this.pos;
     do {
-        c = peek();
+        c = this.peek();
         if (c === null) {
             break;
         }
-    } while(validator(c) && ++pos);
+    } while(validator(c) && ++this.pos);
 
-    return (pos > startedAt);
-}
+    return (this.pos > startedAt);
+};
 
 function not(fn) {
     return function(c) {
@@ -112,11 +90,11 @@ function oneOf(str) {
     };
 }
 
-function addToken(type) {
-    const token = new Token(type, source.substring(start, pos), start, pos);
-    tokens.push(token);
-    ignore();
-}
+Lexer.prototype.addToken = function(type) {
+    const token = new Token(type, this.source.substring(this.start, this.pos), this.start, this.pos);
+    this.tokens.push(token);
+    this.ignore();
+};
 
 // Whitespace characters as specified by ES1
 function isWhitespace(c) {
@@ -281,145 +259,145 @@ function isKeyword(word) {
 /*
  * Various State Functions
  */
-function lexIdentifier() {
+Lexer.prototype.lexIdentifier = function() {
     // Keywords and reserved keywords will be a subset of the words that
     // can be formed by identifier chars.
     // Keep accumulating chars and check for keyword later.
-    acceptRun(isIdentifierChar);
+    this.acceptRun(isIdentifierChar);
 
     // Make sure identifier didn't start with a decimal digit
-    const firstChar = source[start];
+    const firstChar = this.source[this.start];
     if (isDecimalDigit(firstChar)) {
-        throw new SyntaxError("Invalid identifier: " + source.substring(start, pos));
+        throw new SyntaxError("Invalid identifier: " + this.source.substring(this.start, this.pos));
     }
 
-    const c = peek();
+    const c = this.peek();
     if (isQuoteChar(c)) {
-        throw new SyntaxError("Invalid identifier: " + source.substring(start, pos + 1));
+        throw new SyntaxError("Invalid identifier: " + this.source.substring(this.start, this.pos + 1));
     }
 
-    const word = source.substring(start, pos);
+    const word = this.source.substring(this.start, this.pos);
     if (isKeyword(word)) {
-        addToken(tokenTypes.keyword);
+        this.addToken(tokenTypes.keyword);
     }
     else {
-        addToken(tokenTypes.identifier);
+        this.addToken(tokenTypes.identifier);
     }
-    return lexText;
-}
+    return this.lexText;
+};
 
-function lexNumber() {
+Lexer.prototype.lexNumber = function() {
     let validator = isDecimalDigit;
 
     // If the first digit is 0, then need to first determine whether it's an
     // octal number, or a hex number, or a decimal number.
-    if (accept(oneOf("0"))) {
+    if (this.accept(oneOf("0"))) {
         // If number started with 0x or 0X, then it's a hex number.
-        if (accept(oneOf("xX"))) {
+        if (this.accept(oneOf("xX"))) {
             validator = isHexDigit;
 
             // The hex number needs to at least be followed by some digit.
-            if (!accept(validator)) {
-                throw new SyntaxError("Invalid number: " + source.substring(start, pos + 1));
+            if (!this.accept(validator)) {
+                throw new SyntaxError("Invalid number: " + this.source.substring(this.start, this.pos + 1));
             }
         }
         // If number starts with 0 followed by an octal digit, then it's an
         // octal number.
-        else if (accept(isOctalDigit)) {
+        else if (this.accept(isOctalDigit)) {
             validator = isOctalDigit;
         }
         // If a 0 isn't a hex nor an octal number, then it's invalid.
-        else if (accept(isDecimalDigit)) {
-            throw new SyntaxError("Invalid number: " + source.substring(start, pos));
+        else if (this.accept(isDecimalDigit)) {
+            throw new SyntaxError("Invalid number: " + this.source.substring(this.start, this.pos));
         }
     }
 
     // Keep on consuming valid digits until it runs out
-    acceptRun(validator);
+    this.acceptRun(validator);
 
     if (validator == isDecimalDigit) {
         // A number could have a decimal in it, followed by a sequence of valid
         // digits again.
-        if (accept(oneOf("."))) {
-            acceptRun(validator);
+        if (this.accept(oneOf("."))) {
+            this.acceptRun(validator);
         }
 
-        if (accept(oneOf("eE"))) {
-            accept(oneOf("+-"));
-            if (!accept(validator)) {
-                throw new SyntaxError("Invalid number: " + source.substring(start, pos + 1));
+        if (this.accept(oneOf("eE"))) {
+            this.accept(oneOf("+-"));
+            if (!this.accept(validator)) {
+                throw new SyntaxError("Invalid number: " + this.source.substring(this.start, this.pos + 1));
             }
-            acceptRun(validator);
+            this.acceptRun(validator);
         }
     }
 
     // A number cannot be immediately followed by characters that could be used
     // for identifiers or keywords. It also cannot be immediately followed by
     // a string.
-    const c = peek();
+    const c = this.peek();
     if (isIdentifierChar(c) || isQuoteChar(c) || oneOf(".eE")(c)) {
-        throw new SyntaxError("Invalid number: " + source.substring(start, pos + 1));
+        throw new SyntaxError("Invalid number: " + this.source.substring(this.start, this.pos + 1));
     }
 
-    addToken(tokenTypes.numericLiteral);
+    this.addToken(tokenTypes.numericLiteral);
 
-    return lexText();
-}
+    return this.lexText;
+};
 
-function lexPunctuator() {
+Lexer.prototype.lexPunctuator = function() {
     // This loop will handle the situation when valid punctuators are next
     // to each other. E.g. ![x];
-    while (accept(isPunctuatorChar)) {
-        let word = source.substring(start, pos);
+    while (this.accept(isPunctuatorChar)) {
+        let word = this.source.substring(this.start, this.pos);
 
         // Keep accumulating punctuator chars, and as soon as the accumulated
         // word isn't a valid punctuator, we stop and backup to take the
         // longest valid punctuator before continuing.
         if (!isPunctuator(word)) {
-            backup();
-            addToken(tokenTypes.punctuator);
-            return lexText;
+            this.backup();
+            this.addToken(tokenTypes.punctuator);
+            return this.lexText;
         }
     }
 
     // Handle the case when punctuator is by itself and not next to
     // other punctuators.
-    const word = source.substring(start, pos);
+    const word = this.source.substring(this.start, this.pos);
     if (isPunctuator(word)) {
-        addToken(tokenTypes.punctuator);
-        return lexText;
+        this.addToken(tokenTypes.punctuator);
+        return this.lexText;
     }
     else {
         // This shouldn't ever happen, but throw an exception to make sure we
         // catch it if it does.
         throw new SyntaxError('Invalid punctuator: ' + word);
     }
-}
+};
 
-function lexQuote(quoteChar) {
+Lexer.prototype.lexQuote = function(quoteChar) {
     return function() {
         let escapeEncountered = false;
         do {
             // Keep consuming characters unless we encounter line
             // terminator, \, or the quote char.
-            if (acceptRun(not(or(isLineTerminator, oneOf("\\" + quoteChar))))) {
+            if (this.acceptRun(not(or(isLineTerminator, oneOf("\\" + quoteChar))))) {
                 escapeEncountered = false;
             }
 
-            const c = next();
+            const c = this.next();
             if (c === null) {
                 // If we reached EOF without the closing quote char, then this string is incomplete.
-                throw new SyntaxError('Illegal token: ' + source.substring(start, pos));
+                throw new SyntaxError('Illegal token: ' + this.source.substring(this.start, this.pos));
             }
             else if (!escapeEncountered) {
                 if (isLineTerminator(c)) {
                     // If we somehow reached EOL without encountering the
                     // ending quote char then this string is incomplete.
-                    throw new SyntaxError('Illegal token: ' + source.substring(start, pos));
+                    throw new SyntaxError('Illegal token: ' + this.source.substring(this.start, this.pos));
                 }
                 else if (c === quoteChar) {
-                    addToken(tokenTypes.stringLiteral);
-                    return lexText;
+                    this.addToken(tokenTypes.stringLiteral);
+                    return this.lexText;
                 }
                 else if (c === "\\") {
                     escapeEncountered = true;
@@ -430,94 +408,92 @@ function lexQuote(quoteChar) {
             }
         } while(true);
     };
-}
+};
 
-function lexSingleLineComment() {
+Lexer.prototype.lexSingleLineComment = function() {
     // Single line comment is only terminated by a line terminator
     // character and nothing else
-    acceptRun(not(isLineTerminator));
-    ignore();
-    return lexText;
-}
+    this.acceptRun(not(isLineTerminator));
+    this.ignore();
+    return this.lexText;
+};
 
-function lexMultiLineComment() {
+Lexer.prototype.lexMultiLineComment = function() {
     do {
         // Multi-line comment is terminated if we see * followed by /
-        const nextTwo = source.substr(pos, 2);
+        const nextTwo = this.source.substr(this.pos, 2);
         if (nextTwo === '*/') {
-            pos += 2;
-            ignore();
-            return lexText;
+            this.pos += 2;
+            this.ignore();
+            return this.lexText;
         }
 
-        next();
+        this.next();
     } while(true);
-}
+};
 
-function lexText() {
+Lexer.prototype.lexText = function() {
     do {
         // Examine the next 2 characters to see if we're encountering code comments
-        const nextTwo = source.substr(pos, 2);
+        const nextTwo = this.source.substr(this.pos, 2);
         if (nextTwo === '//') {
-            pos += 2;
-            return lexSingleLineComment;
+            this.pos += 2;
+            return this.lexSingleLineComment;
         }
         else if (nextTwo === '/*') {
-            pos += 2;
-            return lexMultiLineComment;
+            this.pos += 2;
+            return this.lexMultiLineComment;
         }
 
         // Consume the next character and decide what to do
-        const c = next();
+        const c = this.next();
         if (c === null) {
             // EOF
             return null;
         }
         else if (isQuoteChar(c)) {
-            return lexQuote(c);
+            return this.lexQuote(c);
         }
-        else if (isDecimalDigit(c) || (c === '.' && isDecimalDigit(peek()))) {
-            backup();
-            return lexNumber;
+        else if (isDecimalDigit(c) || (c === '.' && isDecimalDigit(this.peek()))) {
+            this.backup();
+            return this.lexNumber;
         }
         else if (isWhitespace(c)) {
-            ignore();
+            this.ignore();
         }
         else if (isPunctuatorChar(c)) {
-            backup();
-            return lexPunctuator;
+            this.backup();
+            return this.lexPunctuator;
         }
         else if (isIdentifierChar(c)) {
-            backup();
-            return lexIdentifier;
+            this.backup();
+            return this.lexIdentifier;
         }
         else if (isLineTerminator(c)) {
-            ignore();
+            this.ignore();
         }
         else {
             throw new SyntaxError('Unexpected character: ' + c);
         }
     } while(true);
-}
+};
 
-function nextToken() {
-    if (tokenIndex >= tokens.length) {
-        return new Token(tokenTypes.eof, null, source.length, source.length);
+Lexer.prototype.nextToken = function() {
+    if (this.tokenIndex >= this.tokens.length) {
+        return new Token(tokenTypes.eof, null, this.source.length, this.source.length);
     }
 
-    const token = tokens[tokenIndex];
-    tokenIndex++;
+    const token = this.tokens[this.tokenIndex];
+    this.tokenIndex++;
     return token;
-}
+};
 
-function setInput(sourceText) {
-    reset(sourceText);
+Lexer.prototype.setInput = function(sourceText) {
+    this.reset(sourceText);
 
     do {
-        stateFn = stateFn();
-    } while (stateFn !== null);
-}
+        this.stateFn = this.stateFn();
+    } while (this.stateFn !== null);
+};
 
-exports.nextToken = nextToken;
-exports.setInput = setInput;
-exports.tokenTypes = tokenTypes;
+module.exports = Lexer;
