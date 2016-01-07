@@ -13,13 +13,13 @@ function Parser(sourceText) {
     this.lexer = new Lexer(sourceText);
 }
 
-const pp = Parser.prototype;
+const p = Parser.prototype;
 
 /*
  * Lexer Interactions
  */
 // Returns the next token
-pp.next = function() {
+p.next = function() {
     if (this.tokens.length > 0) {
         return this.tokens[0];
     }
@@ -30,7 +30,7 @@ pp.next = function() {
     }
 };
 
-pp.consume = function() {
+p.consume = function() {
     if (this.tokens.length === 0) {
         this.next();
     }
@@ -41,11 +41,11 @@ pp.consume = function() {
 /*
  * Helper Functions
  */
-pp.expectPunctuator = function(punctuator) {
+p.expectPunctuator = function(punctuator) {
     return this.expectPunctuators([punctuator]);
 };
 
-pp.expectPunctuators = function(punctuators) {
+p.expectPunctuators = function(punctuators) {
     const token = this.consume();
     if (token.type !== tokenTypes.punctuator) {
         throw new SyntaxError('TODO');
@@ -58,11 +58,11 @@ pp.expectPunctuators = function(punctuators) {
     // TODO: Add to AST
 };
 
-pp.matchPunctuator = function(punctuator) {
+p.matchPunctuator = function(punctuator) {
     return this.matchPunctuators([punctuator]);
 };
 
-pp.matchPunctuators = function(punctuators) {
+p.matchPunctuators = function(punctuators) {
     const token = this.next();
     if (token.type !== tokenTypes.punctuator) {
         return false;
@@ -71,14 +71,14 @@ pp.matchPunctuators = function(punctuators) {
     return punctuators.indexOf(token.value) >= 0;
 };
 
-pp.matchStatement = function() {
+p.matchStatement = function() {
     return this.matchPunctuator(";");
 };
 
 /*
  * Actual recursive descent part of things
  */
-pp.parseStatement = function() {
+p.parseStatement = function() {
     // Parse EmptyStatement
     if (this.matchPunctuator(";")) {
         this.expectPunctuator(";");
@@ -88,12 +88,12 @@ pp.parseStatement = function() {
     // TODO: Need to parse other types of statements
 };
 
-pp.parseSourceElement = function() {
+p.parseSourceElement = function() {
     // TODO: Need to parse function declaration at some point
     return this.parseStatement();
 }
 
-pp.parseProgram = function() {
+p.parseProgram = function() {
     const body = [];
 
     body.push(this.parseSourceElement());

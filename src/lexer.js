@@ -7,10 +7,12 @@ function Lexer(sourceText) {
     this.setInput(sourceText);
 }
 
+const l = Lexer.prototype;
+
 /*
  * Lexer States and Helper Functions
  */
-Lexer.prototype.reset = function(sourceText) {
+l.reset = function(sourceText) {
     this.tokens = [];
     this.stateFn = this.lexText;
     this.source = sourceText;
@@ -20,12 +22,12 @@ Lexer.prototype.reset = function(sourceText) {
 };
 
 // Skips over the pending input before this point
-Lexer.prototype.ignore = function() {
+l.ignore = function() {
     this.start = this.pos;
 };
 
 // Returns the next character in the source code
-Lexer.prototype.peek = function() {
+l.peek = function() {
     if (this.pos >= this.source.length) {
         // null represents EOF
         return null;
@@ -36,7 +38,7 @@ Lexer.prototype.peek = function() {
 };
 
 // Returns the next character in the source code and advance position
-Lexer.prototype.next = function() {
+l.next = function() {
     const c = this.peek();
     if (c !== null) {
         this.pos++;
@@ -44,11 +46,11 @@ Lexer.prototype.next = function() {
     return c;
 };
 
-Lexer.prototype.backup = function() {
+l.backup = function() {
     this.pos--;
 };
 
-Lexer.prototype.accept = function(validator) {
+l.accept = function(validator) {
     const c = this.peek();
     if (c !== null && validator(c)) {
         this.pos++;
@@ -58,7 +60,7 @@ Lexer.prototype.accept = function(validator) {
     return false;
 };
 
-Lexer.prototype.acceptRun = function(validator) {
+l.acceptRun = function(validator) {
     let c;
     let startedAt = this.pos;
     do {
@@ -90,7 +92,7 @@ function oneOf(str) {
     };
 }
 
-Lexer.prototype.addToken = function(type) {
+l.addToken = function(type) {
     const token = new Token(type, this.source.substring(this.start, this.pos), this.start, this.pos);
     this.tokens.push(token);
     this.ignore();
@@ -259,7 +261,7 @@ function isKeyword(word) {
 /*
  * Various State Functions
  */
-Lexer.prototype.lexIdentifier = function() {
+l.lexIdentifier = function() {
     // Keywords and reserved keywords will be a subset of the words that
     // can be formed by identifier chars.
     // Keep accumulating chars and check for keyword later.
@@ -286,7 +288,7 @@ Lexer.prototype.lexIdentifier = function() {
     return this.lexText;
 };
 
-Lexer.prototype.lexNumber = function() {
+l.lexNumber = function() {
     let validator = isDecimalDigit;
 
     // If the first digit is 0, then need to first determine whether it's an
@@ -344,7 +346,7 @@ Lexer.prototype.lexNumber = function() {
     return this.lexText;
 };
 
-Lexer.prototype.lexPunctuator = function() {
+l.lexPunctuator = function() {
     // This loop will handle the situation when valid punctuators are next
     // to each other. E.g. ![x];
     while (this.accept(isPunctuatorChar)) {
@@ -374,7 +376,7 @@ Lexer.prototype.lexPunctuator = function() {
     }
 };
 
-Lexer.prototype.lexQuote = function(quoteChar) {
+l.lexQuote = function(quoteChar) {
     return function() {
         let escapeEncountered = false;
         do {
@@ -410,7 +412,7 @@ Lexer.prototype.lexQuote = function(quoteChar) {
     };
 };
 
-Lexer.prototype.lexSingleLineComment = function() {
+l.lexSingleLineComment = function() {
     // Single line comment is only terminated by a line terminator
     // character and nothing else
     this.acceptRun(not(isLineTerminator));
@@ -418,7 +420,7 @@ Lexer.prototype.lexSingleLineComment = function() {
     return this.lexText;
 };
 
-Lexer.prototype.lexMultiLineComment = function() {
+l.lexMultiLineComment = function() {
     do {
         // Multi-line comment is terminated if we see * followed by /
         const nextTwo = this.source.substr(this.pos, 2);
@@ -432,7 +434,7 @@ Lexer.prototype.lexMultiLineComment = function() {
     } while(true);
 };
 
-Lexer.prototype.lexText = function() {
+l.lexText = function() {
     do {
         // Examine the next 2 characters to see if we're encountering code comments
         const nextTwo = this.source.substr(this.pos, 2);
@@ -478,7 +480,7 @@ Lexer.prototype.lexText = function() {
     } while(true);
 };
 
-Lexer.prototype.nextToken = function() {
+l.nextToken = function() {
     if (this.tokenIndex >= this.tokens.length) {
         return new Token(tokenTypes.eof, null, this.source.length, this.source.length);
     }
@@ -488,7 +490,7 @@ Lexer.prototype.nextToken = function() {
     return token;
 };
 
-Lexer.prototype.setInput = function(sourceText) {
+l.setInput = function(sourceText) {
     this.reset(sourceText);
 
     do {
