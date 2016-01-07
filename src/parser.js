@@ -58,6 +58,15 @@ p.expectPunctuators = function(punctuators) {
     // TODO: Add to AST
 };
 
+p.expectLiteral = function() {
+    const token = this.consume();
+    if (!isLiteral(token)) {
+        throw new SyntaxError('TODO');
+    }
+
+    return token;
+}
+
 p.matchPunctuator = function(punctuator) {
     return this.matchPunctuators([punctuator]);
 };
@@ -71,18 +80,82 @@ p.matchPunctuators = function(punctuators) {
     return punctuators.indexOf(token.value) >= 0;
 };
 
+p.matchIdentifier = function() {
+    const token = this.next();
+    return (token.type === tokenTypes.identifier);
+};
+
+function isLiteral(token) {
+    return (token.type === tokenTypes.stringLiteral) ||
+        (token.type === tokenTypes.numericLiteral) ||
+        (token.type === tokenTypes.nullLiteral) ||
+        (token.type === tokenTypes.booleanLiteral);
+}
+
+p.matchLiteral = function() {
+    const token = this.next();
+    return isLiteral(token);
+};
+
 p.matchStatement = function() {
-    return this.matchPunctuator(";");
+    return this.matchPunctuator(";") ||
+        this.matchAssignmentExpression();
+};
+
+p.matchPrimaryExpression = function() {
+    return this.matchIdentifier() || this.matchLiteral();
+};
+
+p.matchAssignmentExpression = function() {
+    return this.matchPrimaryExpression();
 };
 
 /*
  * Actual recursive descent part of things
  */
+p.parsePrimaryExpression = function() {
+    if (this.matchLiteral()) {
+        const token = this.expectLiteral();
+        return new estree.Literal(token.value);
+    }
+}
+
+p.parseAssignmentExpression = function() {
+    return this.parsePrimaryExpression();
+}
+
+p.parseExpression = function() {
+    const expressions = [];
+
+    expressions.push(this.parseAssignmentExpression());
+    while (this.matchPunctuator(",")) {
+        this.expectPunctuator(",");
+        expressions.push(this.parseAssignmentExpression());
+    }
+
+    if (expressions.length > 1) {
+        return new estree.SequenceExpression(expressions);
+    }
+    else {
+        return new estree.Literal(expressions[0].value);
+    }
+};
+
+p.parseExpressionStatement = function() {
+    const expression = this.parseExpression();
+    this.expectPunctuator(";");
+    return new estree.ExpressionStatement(expression);
+};
+
 p.parseStatement = function() {
     // Parse EmptyStatement
     if (this.matchPunctuator(";")) {
         this.expectPunctuator(";");
         return new estree.EmptyStatement();
+    }
+    // Parse ExpressionStatement
+    else if (this.matchAssignmentExpression()) {
+        return this.parseExpressionStatement();
     }
 
     // TODO: Need to parse other types of statements
@@ -103,7 +176,7 @@ p.parseProgram = function() {
         body.push(this.parseSourceElement());
     }
 
-    if (this.tokens.length !== 1 && this.tokens[0].type !== tokenTypes.eof) {
+    if (this.tokens.length >= 1 && this.tokens[0].type !== tokenTypes.eof) {
         throw new SyntaxError("Didn't consume all tokens: " + util.inspect(this.tokens[0]));
     }
 
