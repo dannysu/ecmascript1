@@ -63,10 +63,10 @@ class ExpressionStatement extends Statement {
 }
 
 class IfStatement extends Statement {
-    constructor(test, consequence, alternate) {
+    constructor(test, consequent, alternate) {
         super('IfStatement');
         this.test = test;
-        this.consequence = consequence;
+        this.consequent = consequent;
         this.alternate = alternate;
     }
 }

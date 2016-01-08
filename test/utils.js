@@ -49,12 +49,12 @@ e.expectExpressionStatementFn = function(validator) {
     };
 };
 
-e.expectIfStatementFn = function(testValidator, consequenceValidator, alternateValidator) {
+e.expectIfStatementFn = function(testValidator, consequentValidator, alternateValidator) {
     return function(ast) {
         ast.type.should.be.eql('IfStatement');
 
         testValidator(ast.test);
-        consequenceValidator(ast.consequence);
+        consequentValidator(ast.consequent);
         alternateValidator(ast.alternate);
     };
 };

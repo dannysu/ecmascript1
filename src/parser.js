@@ -204,8 +204,8 @@ p.parseIfStatement = function() {
 
     this.expectPunctuators(")");
 
-    const consequence = this.parseStatement();
-    if (consequence === null) {
+    const consequent = this.parseStatement();
+    if (consequent === null) {
         throw new SyntaxError('Expecting statement for if-statement');
     }
 
@@ -219,7 +219,7 @@ p.parseIfStatement = function() {
         }
     }
 
-    return new estree.IfStatement(test, consequence, alternate);
+    return new estree.IfStatement(test, consequent, alternate);
 };
 
 p.parseStatement = function() {
