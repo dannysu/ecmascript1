@@ -42,6 +42,13 @@ class Statement extends Node {
     }
 }
 
+class BlockStatement extends Statement {
+    constructor(statements) {
+        super('BlockStatement');
+        this.body = statements;
+    }
+}
+
 class EmptyStatement extends Statement {
     constructor() {
         super('EmptyStatement');
@@ -67,6 +74,7 @@ class IfStatement extends Statement {
 e.Program = Program;
 e.Literal = Literal;
 e.SequenceExpression = SequenceExpression;
+e.BlockStatement = BlockStatement;
 e.EmptyStatement = EmptyStatement;
 e.ExpressionStatement = ExpressionStatement;
 e.IfStatement = IfStatement;

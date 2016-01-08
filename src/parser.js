@@ -133,6 +133,7 @@ p.matchLiteral = function() {
 
 p.matchStatement = function() {
     return this.matchPunctuators(";") ||
+        this.matchKeywords("if") ||
         this.matchAssignmentExpression();
 };
 
@@ -152,11 +153,25 @@ p.parsePrimaryExpression = function() {
         const token = this.expectLiteral();
         return new estree.Literal(token.value);
     }
-}
+};
 
 p.parseAssignmentExpression = function() {
     return this.parsePrimaryExpression();
-}
+};
+
+p.parseBlock = function() {
+    const statements = [];
+
+    this.expectPunctuators("{");
+
+    while (this.matchStatement()) {
+        statements.push(this.parseStatement());
+    }
+
+    this.expectPunctuators("}");
+
+    return new estree.BlockStatement(statements);
+};
 
 p.parseExpression = function() {
     const expressions = [];
@@ -208,8 +223,12 @@ p.parseIfStatement = function() {
 };
 
 p.parseStatement = function() {
+    // Parse Block
+    if (this.matchPunctuators("{")) {
+        return this.parseBlock();
+    }
     // Parse EmptyStatement
-    if (this.matchPunctuators(";")) {
+    else if (this.matchPunctuators(";")) {
         this.expectPunctuators(";");
         return new estree.EmptyStatement();
     }
