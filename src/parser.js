@@ -41,8 +41,22 @@ p.consume = function() {
 /*
  * Helper Functions
  */
-p.expectPunctuator = function(punctuator) {
-    return this.expectPunctuators([punctuator]);
+p.expectKeywords = function(keywords) {
+    const token = this.consume();
+    if (token.type !== tokenTypes.keyword) {
+        throw new SyntaxError('TODO');
+    }
+
+    if (Array.isArray(keywords)) {
+        if (keywords.indexOf(token.value) < 0) {
+            throw new SyntaxError('TODO');
+        }
+    }
+    else if (keywords !== token.value) {
+        throw new SyntaxError('TODO');
+    }
+
+    // TODO: Add to AST
 };
 
 p.expectPunctuators = function(punctuators) {
@@ -51,7 +65,12 @@ p.expectPunctuators = function(punctuators) {
         throw new SyntaxError('TODO');
     }
 
-    if (punctuators.indexOf(token.value) < 0) {
+    if (Array.isArray(punctuators)) {
+        if (punctuators.indexOf(token.value) < 0) {
+            throw new SyntaxError('TODO');
+        }
+    }
+    else if (punctuators !== token.value) {
         throw new SyntaxError('TODO');
     }
 
@@ -67,8 +86,18 @@ p.expectLiteral = function() {
     return token;
 }
 
-p.matchPunctuator = function(punctuator) {
-    return this.matchPunctuators([punctuator]);
+p.matchKeywords = function(keywords) {
+    const token = this.next();
+    if (token.type !== tokenTypes.keyword) {
+        return false;
+    }
+
+    if (Array.isArray(keywords)) {
+        return keywords.indexOf(token.value) >= 0;
+    }
+    else {
+        return keywords === token.value;
+    }
 };
 
 p.matchPunctuators = function(punctuators) {
@@ -77,7 +106,12 @@ p.matchPunctuators = function(punctuators) {
         return false;
     }
 
-    return punctuators.indexOf(token.value) >= 0;
+    if (Array.isArray(punctuators)) {
+        return punctuators.indexOf(token.value) >= 0;
+    }
+    else {
+        return punctuators === token.value;
+    }
 };
 
 p.matchIdentifier = function() {
@@ -98,7 +132,7 @@ p.matchLiteral = function() {
 };
 
 p.matchStatement = function() {
-    return this.matchPunctuator(";") ||
+    return this.matchPunctuators(";") ||
         this.matchAssignmentExpression();
 };
 
@@ -128,8 +162,8 @@ p.parseExpression = function() {
     const expressions = [];
 
     expressions.push(this.parseAssignmentExpression());
-    while (this.matchPunctuator(",")) {
-        this.expectPunctuator(",");
+    while (this.matchPunctuators(",")) {
+        this.expectPunctuators(",");
         expressions.push(this.parseAssignmentExpression());
     }
 
@@ -143,22 +177,53 @@ p.parseExpression = function() {
 
 p.parseExpressionStatement = function() {
     const expression = this.parseExpression();
-    this.expectPunctuator(";");
+    this.expectPunctuators(";");
     return new estree.ExpressionStatement(expression);
+};
+
+p.parseIfStatement = function() {
+    this.expectKeywords("if");
+    this.expectPunctuators("(");
+
+    const test = this.parseExpression()
+
+    this.expectPunctuators(")");
+
+    const consequence = this.parseStatement();
+    if (consequence === null) {
+        throw new SyntaxError('Expecting statement for if-statement');
+    }
+
+    let alternate = null;
+
+    if (this.matchKeywords("else")) {
+        this.expectKeywords("else");
+        alternate = this.parseStatement();
+        if (alternate === null) {
+            throw new SyntaxError('Expecting statement for else block in if-statement');
+        }
+    }
+
+    return new estree.IfStatement(test, consequence, alternate);
 };
 
 p.parseStatement = function() {
     // Parse EmptyStatement
-    if (this.matchPunctuator(";")) {
-        this.expectPunctuator(";");
+    if (this.matchPunctuators(";")) {
+        this.expectPunctuators(";");
         return new estree.EmptyStatement();
     }
     // Parse ExpressionStatement
     else if (this.matchAssignmentExpression()) {
         return this.parseExpressionStatement();
     }
+    // Parse IfStatement
+    else if (this.matchKeywords("if")) {
+        return this.parseIfStatement();
+    }
 
     // TODO: Need to parse other types of statements
+    return null;
 };
 
 p.parseSourceElement = function() {

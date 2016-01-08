@@ -55,8 +55,18 @@ class ExpressionStatement extends Statement {
     }
 }
 
+class IfStatement extends Statement {
+    constructor(test, consequence, alternate) {
+        super('IfStatement');
+        this.test = test;
+        this.consequence = consequence;
+        this.alternate = alternate;
+    }
+}
+
 e.Program = Program;
 e.Literal = Literal;
 e.SequenceExpression = SequenceExpression;
 e.EmptyStatement = EmptyStatement;
 e.ExpressionStatement = ExpressionStatement;
+e.IfStatement = IfStatement;
