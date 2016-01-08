@@ -5,16 +5,17 @@ const should = require('should');
 const parser = require('../../src/parser.js');
 const estree = require('../../src/estree.js');
 
+const u = require('../utils.js');
+
 describe('parser', function() {
     describe('parse a single empty statement', function() {
         it('should return proper ESTree AST', function() {
             const input = ";";
             const ast = parser.parse(input);
 
-            ast.type.should.be.eql('Program');
-            should.exist(ast.body);
-            ast.body.length.should.be.eql(1);
-            ast.body[0].type.should.be.eql('EmptyStatement');
+            u.expectProgram(ast, [
+                u.expectEmptyStatementFn
+            ]);
         });
     });
 
@@ -27,13 +28,11 @@ describe('parser', function() {
             `;
             const ast = parser.parse(input);
 
-            ast.type.should.be.eql('Program');
-            should.exist(ast.body);
-            ast.body.length.should.be.eql(3);
-
-            for (let node of ast.body) {
-                node.type.should.be.eql('EmptyStatement');
-            }
+            u.expectProgram(ast, [
+                u.expectEmptyStatementFn,
+                u.expectEmptyStatementFn,
+                u.expectEmptyStatementFn
+            ]);
         });
     });
 });
