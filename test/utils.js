@@ -38,6 +38,18 @@ e.expectBlockFn = function(validators) {
     };
 };
 
+e.expectVariableDeclarationFn = function(validators) {
+    return function(ast) {
+        ast.type.should.be.eql('VariableDeclaration');
+        ast.kind.should.be.eql('var');
+        ast.declarations.length.should.be.eql(validators.length);
+        for (let declaration of ast.declarations) {
+            const validator = validators.shift();
+            validator(declaration);
+        }
+    };
+};
+
 e.expectEmptyStatementFn = function(ast) {
     ast.type.should.be.eql('EmptyStatement');
 };
@@ -76,5 +88,13 @@ e.expectLiteralFn = function(expectedValue) {
     return function(ast) {
         ast.type.should.be.eql('Literal');
         ast.value.should.be.eql(expectedValue);
+    };
+};
+
+e.expectVariableDeclaratorFn = function(identifier, validator) {
+    return function(ast) {
+        ast.type.should.be.eql('VariableDeclarator');
+        ast.id.should.be.eql(identifier);
+        validator(ast.init);
     };
 };

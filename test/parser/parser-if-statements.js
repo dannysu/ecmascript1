@@ -26,6 +26,15 @@ describe('parser', function() {
         });
     });
 
+    describe('parse an if-statement missing test expression', function() {
+        it('should fail', function() {
+            const input = `
+                if () 1;
+            `;
+            u.expectFail(input);
+        });
+    });
+
     describe('parse if-statement missing else statement', function() {
         it('should fail', function() {
             const input = `

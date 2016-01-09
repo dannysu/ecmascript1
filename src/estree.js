@@ -71,6 +71,28 @@ class IfStatement extends Statement {
     }
 }
 
+class Declaration extends Statement {
+    constructor(type) {
+        super(type);
+    }
+}
+
+class VariableDeclaration extends Declaration {
+    constructor(declarations) {
+        super('VariableDeclaration');
+        this.declarations = declarations;
+        this.kind = "var";
+    }
+}
+
+class VariableDeclarator extends Node {
+    constructor(identifier, initialValue) {
+        super('VariableDeclarator');
+        this.id = identifier;
+        this.init = initialValue;
+    }
+}
+
 e.Program = Program;
 e.Literal = Literal;
 e.SequenceExpression = SequenceExpression;
@@ -78,3 +100,5 @@ e.BlockStatement = BlockStatement;
 e.EmptyStatement = EmptyStatement;
 e.ExpressionStatement = ExpressionStatement;
 e.IfStatement = IfStatement;
+e.VariableDeclaration = VariableDeclaration;
+e.VariableDeclarator = VariableDeclarator;

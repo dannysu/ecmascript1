@@ -41,6 +41,15 @@ p.consume = function() {
 /*
  * Helper Functions
  */
+p.expectIdentifier = function() {
+    const token = this.consume();
+    if (token.type !== tokenTypes.identifier) {
+        throw new SyntaxError('TODO');
+    }
+
+    return token;
+};
+
 p.expectKeywords = function(keywords) {
     const token = this.consume();
     if (token.type !== tokenTypes.keyword) {
@@ -133,7 +142,7 @@ p.matchLiteral = function() {
 
 p.matchStatement = function() {
     return this.matchPunctuators(";") ||
-        this.matchKeywords("if") ||
+        this.matchKeywords(["if", "var"]) ||
         this.matchAssignmentExpression();
 };
 
@@ -153,10 +162,53 @@ p.parsePrimaryExpression = function() {
         const token = this.expectLiteral();
         return new estree.Literal(token.value);
     }
+    return null;
 };
 
 p.parseAssignmentExpression = function() {
     return this.parsePrimaryExpression();
+};
+
+p.parseExpression = function() {
+    const expressions = [];
+
+    let expression = this.parseAssignmentExpression();
+    if (expression === null) {
+        throw new SyntaxError('TODO');
+    }
+    expressions.push(expression);
+    while (this.matchPunctuators(",")) {
+        this.expectPunctuators(",");
+        expression = this.parseAssignmentExpression();
+        if (expression === null) {
+            throw new SyntaxError('TODO');
+        }
+        expressions.push(expression);
+    }
+
+    if (expressions.length > 1) {
+        return new estree.SequenceExpression(expressions);
+    }
+    else {
+        return new estree.Literal(expressions[0].value);
+    }
+};
+
+p.parseVariableDeclaration = function() {
+    const identifier = this.expectIdentifier();
+    let assignment = null;
+    if (this.matchPunctuators("=")) {
+        this.expectPunctuators("=");
+        assignment = this.parseAssignmentExpression();
+        if (assignment === null) {
+            throw new SyntaxError('TODO');
+        }
+    }
+
+    return {
+        identifier: identifier,
+        assignment: assignment
+    };
 };
 
 p.parseBlock = function() {
@@ -173,21 +225,26 @@ p.parseBlock = function() {
     return new estree.BlockStatement(statements);
 };
 
-p.parseExpression = function() {
-    const expressions = [];
+p.parseVariableStatement = function() {
+    const declarations = [];
 
-    expressions.push(this.parseAssignmentExpression());
+    this.expectKeywords("var");
+
+    // Destructuring not yet on by default in nodejs
+    let declarator = this.parseVariableDeclaration();
+    let identifier = declarator.identifier.value;
+    let assignment = declarator.assignment;
+    declarations.push(new estree.VariableDeclarator(identifier, assignment));
     while (this.matchPunctuators(",")) {
         this.expectPunctuators(",");
-        expressions.push(this.parseAssignmentExpression());
+        declarator = this.parseVariableDeclaration();
+        identifier = declarator.identifier.value;
+        assignment = declarator.assignment;
+        declarations.push(new estree.VariableDeclarator(identifier, assignment));
     }
+    this.expectPunctuators(";");
 
-    if (expressions.length > 1) {
-        return new estree.SequenceExpression(expressions);
-    }
-    else {
-        return new estree.Literal(expressions[0].value);
-    }
+    return new estree.VariableDeclaration(declarations);
 };
 
 p.parseExpressionStatement = function() {
@@ -226,6 +283,10 @@ p.parseStatement = function() {
     // Parse Block
     if (this.matchPunctuators("{")) {
         return this.parseBlock();
+    }
+    // Variable Statement
+    else if (this.matchKeywords("var")) {
+        return this.parseVariableStatement();
     }
     // Parse EmptyStatement
     else if (this.matchPunctuators(";")) {
