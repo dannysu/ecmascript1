@@ -71,6 +71,15 @@ e.expectIfStatementFn = function(testValidator, consequentValidator, alternateVa
     };
 };
 
+e.expectWithStatementFn = function(testValidator, statementValidator) {
+    return function(ast) {
+        ast.type.should.be.eql('WithStatement');
+
+        testValidator(ast.test);
+        statementValidator(ast.statement);
+    };
+};
+
 e.expectSequenceExpressionFn = function(validators) {
     return function(ast) {
         ast.type.should.be.eql('SequenceExpression');

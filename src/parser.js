@@ -142,7 +142,7 @@ p.matchLiteral = function() {
 
 p.matchStatement = function() {
     return this.matchPunctuators(";") ||
-        this.matchKeywords(["if", "var"]) ||
+        this.matchKeywords(["if", "var", "with"]) ||
         this.matchAssignmentExpression();
 };
 
@@ -279,27 +279,47 @@ p.parseIfStatement = function() {
     return new estree.IfStatement(test, consequent, alternate);
 };
 
+p.parseWithStatement = function() {
+    this.expectKeywords("with");
+    this.expectPunctuators("(");
+
+    const test = this.parseExpression()
+
+    this.expectPunctuators(")");
+
+    const statement = this.parseStatement();
+    if (statement === null) {
+        throw new SyntaxError('Expecting statement for with-statement');
+    }
+
+    return new estree.WithStatement(test, statement);
+};
+
 p.parseStatement = function() {
     // Parse Block
     if (this.matchPunctuators("{")) {
         return this.parseBlock();
     }
-    // Variable Statement
+    // Parse Variable Statement
     else if (this.matchKeywords("var")) {
         return this.parseVariableStatement();
     }
-    // Parse EmptyStatement
+    // Parse Empty Statement
     else if (this.matchPunctuators(";")) {
         this.expectPunctuators(";");
         return new estree.EmptyStatement();
     }
-    // Parse ExpressionStatement
+    // Parse Expression Statement
     else if (this.matchAssignmentExpression()) {
         return this.parseExpressionStatement();
     }
-    // Parse IfStatement
+    // Parse If Statement
     else if (this.matchKeywords("if")) {
         return this.parseIfStatement();
+    }
+    // Parse With Statement
+    else if (this.matchKeywords("with")) {
+        return this.parseWithStatement();
     }
 
     // TODO: Need to parse other types of statements

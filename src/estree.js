@@ -71,6 +71,14 @@ class IfStatement extends Statement {
     }
 }
 
+class WithStatement extends Statement {
+    constructor(test, statement) {
+        super('WithStatement');
+        this.test = test;
+        this.statement = statement;
+    }
+}
+
 class Declaration extends Statement {
     constructor(type) {
         super(type);
@@ -100,5 +108,6 @@ e.BlockStatement = BlockStatement;
 e.EmptyStatement = EmptyStatement;
 e.ExpressionStatement = ExpressionStatement;
 e.IfStatement = IfStatement;
+e.WithStatement = WithStatement;
 e.VariableDeclaration = VariableDeclaration;
 e.VariableDeclarator = VariableDeclarator;
