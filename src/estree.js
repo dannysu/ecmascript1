@@ -71,11 +71,38 @@ class IfStatement extends Statement {
     }
 }
 
+class WhileStatement extends Statement {
+    constructor(test, body) {
+        super('WhileStatement');
+        this.test = test;
+        this.body = body;
+    }
+}
+
+class ForStatement extends Statement {
+    constructor(init, test, update, body) {
+        super('ForStatement');
+        this.init = init;
+        this.test = test;
+        this.update = update;
+        this.body = body;
+    }
+}
+
+class ForInStatement extends Statement {
+    constructor(left, right, body) {
+        super('ForInStatement');
+        this.left = left;
+        this.right = right;
+        this.body = body;
+    }
+}
+
 class WithStatement extends Statement {
-    constructor(test, statement) {
+    constructor(test, body) {
         super('WithStatement');
         this.test = test;
-        this.statement = statement;
+        this.body = body;
     }
 }
 
@@ -108,6 +135,9 @@ e.BlockStatement = BlockStatement;
 e.EmptyStatement = EmptyStatement;
 e.ExpressionStatement = ExpressionStatement;
 e.IfStatement = IfStatement;
+e.WhileStatement = WhileStatement;
+e.ForStatement = ForStatement;
+e.ForInStatement = ForInStatement;
 e.WithStatement = WithStatement;
 e.VariableDeclaration = VariableDeclaration;
 e.VariableDeclarator = VariableDeclarator;

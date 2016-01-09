@@ -142,7 +142,7 @@ p.matchLiteral = function() {
 
 p.matchStatement = function() {
     return this.matchPunctuators(";") ||
-        this.matchKeywords(["if", "var", "with"]) ||
+        this.matchKeywords(["if", "var", "with", "while", "for"]) ||
         this.matchAssignmentExpression();
 };
 
@@ -169,28 +169,38 @@ p.parseAssignmentExpression = function() {
     return this.parsePrimaryExpression();
 };
 
-p.parseExpression = function() {
+p.parseExpression = function(optional) {
     const expressions = [];
 
     let expression = this.parseAssignmentExpression();
-    if (expression === null) {
+    if (expression !== null) {
+        expressions.push(expression);
+    }
+    else if (!optional) {
         throw new SyntaxError('TODO');
     }
-    expressions.push(expression);
     while (this.matchPunctuators(",")) {
         this.expectPunctuators(",");
         expression = this.parseAssignmentExpression();
-        if (expression === null) {
+        if (expression !== null) {
+            expressions.push(expression);
+        }
+        else if (!optional) {
             throw new SyntaxError('TODO');
         }
-        expressions.push(expression);
     }
 
     if (expressions.length > 1) {
         return new estree.SequenceExpression(expressions);
     }
-    else {
+    else if (expressions.length === 1) {
         return new estree.Literal(expressions[0].value);
+    }
+    else if (optional) {
+        return null;
+    }
+    else {
+        throw new SyntaxError('TODO');
     }
 };
 
@@ -211,6 +221,25 @@ p.parseVariableDeclaration = function() {
     };
 };
 
+p.parseVariableDeclarationList = function() {
+    const declarations = [];
+
+    // Destructuring not yet on by default in nodejs
+    let declarator = this.parseVariableDeclaration();
+    let identifier = declarator.identifier.value;
+    let assignment = declarator.assignment;
+    declarations.push(new estree.VariableDeclarator(identifier, assignment));
+    while (this.matchPunctuators(",")) {
+        this.expectPunctuators(",");
+        declarator = this.parseVariableDeclaration();
+        identifier = declarator.identifier.value;
+        assignment = declarator.assignment;
+        declarations.push(new estree.VariableDeclarator(identifier, assignment));
+    }
+
+    return new estree.VariableDeclaration(declarations);
+};
+
 p.parseBlock = function() {
     const statements = [];
 
@@ -226,25 +255,10 @@ p.parseBlock = function() {
 };
 
 p.parseVariableStatement = function() {
-    const declarations = [];
-
     this.expectKeywords("var");
-
-    // Destructuring not yet on by default in nodejs
-    let declarator = this.parseVariableDeclaration();
-    let identifier = declarator.identifier.value;
-    let assignment = declarator.assignment;
-    declarations.push(new estree.VariableDeclarator(identifier, assignment));
-    while (this.matchPunctuators(",")) {
-        this.expectPunctuators(",");
-        declarator = this.parseVariableDeclaration();
-        identifier = declarator.identifier.value;
-        assignment = declarator.assignment;
-        declarations.push(new estree.VariableDeclarator(identifier, assignment));
-    }
+    const ast = this.parseVariableDeclarationList();
     this.expectPunctuators(";");
-
-    return new estree.VariableDeclaration(declarations);
+    return ast;
 };
 
 p.parseExpressionStatement = function() {
@@ -277,6 +291,108 @@ p.parseIfStatement = function() {
     }
 
     return new estree.IfStatement(test, consequent, alternate);
+};
+
+p.parseWhileStatement = function() {
+    this.expectKeywords("while");
+    this.expectPunctuators("(");
+
+    const test = this.parseExpression()
+
+    this.expectPunctuators(")");
+
+    const statement = this.parseStatement();
+    if (statement === null) {
+        throw new SyntaxError('Expecting statement for while-statement');
+    }
+
+    return new estree.WhileStatement(test, statement);
+};
+
+p.parseForStatement = function() {
+    this.expectKeywords("for");
+    this.expectPunctuators("(");
+
+    let isForInStatement = false;
+
+    let left = null, right = null;
+    let init = null, test = null, update = null;
+
+    if (this.matchKeywords("var")) {
+        // Can be either of the following forms:
+        // for ( var VariableDeclarationList ; Expression(opt) ; Expression(opt) ) Statement
+        // for ( var Identifier Initializer(opt) in Expression ) Statement
+
+        this.expectKeywords("var");
+        const ast = this.parseVariableDeclarationList();
+        if (this.matchKeywords("in")) {
+            isForInStatement = true;
+            left = ast;
+
+            // Make sure the ast contains only one identifier and at most one initializer
+            if (ast.declarations.length !== 1) {
+                throw new SyntaxError('TODO');
+            }
+
+            this.expectKeywords("in");
+
+            right = this.parseExpression();
+        }
+        else {
+            init = ast;
+
+            this.expectPunctuators(";");
+
+            test = this.parseExpression(true);
+            this.expectPunctuators(";");
+
+            update = this.parseExpression(true);
+        }
+    }
+    else {
+        // Can be either of the following forms:
+        // for ( Expression(opt) ; Expression(opt) ; Expression(opt) ) Statement
+        // for ( LeftHandSideExpression in Expression ) Statement
+        init = left = this.parseExpression(true);
+
+        if (this.matchPunctuators(";")) {
+            this.expectPunctuators(";");
+
+            test = this.parseExpression(true);
+            this.expectPunctuators(";");
+
+            update = this.parseExpression(true);
+        }
+        else {
+            isForInStatement = true;
+            this.expectKeywords("in");
+
+            right = this.parseExpression();
+        }
+    }
+
+    this.expectPunctuators(")");
+
+    const statement = this.parseStatement();
+    if (statement === null) {
+        throw new SyntaxError('Expecting statement for for-statement');
+    }
+
+    if (isForInStatement) {
+        return new estree.ForInStatement(left, right, statement);
+    }
+    else {
+        return new estree.ForStatement(init, test, update, statement);
+    }
+};
+
+p.parseIterationStatement = function() {
+    if (this.matchKeywords("while")) {
+        return this.parseWhileStatement();
+    }
+    else {
+        return this.parseForStatement();
+    }
 };
 
 p.parseWithStatement = function() {
@@ -316,6 +432,11 @@ p.parseStatement = function() {
     // Parse If Statement
     else if (this.matchKeywords("if")) {
         return this.parseIfStatement();
+    }
+    // Parse Iteration Statement
+    else if (this.matchKeywords("while") ||
+             this.matchKeywords("for")) {
+        return this.parseIterationStatement();
     }
     // Parse With Statement
     else if (this.matchKeywords("with")) {

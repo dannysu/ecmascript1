@@ -71,12 +71,42 @@ e.expectIfStatementFn = function(testValidator, consequentValidator, alternateVa
     };
 };
 
-e.expectWithStatementFn = function(testValidator, statementValidator) {
+e.expectWhileStatementFn = function(testValidator, bodyValidator) {
+    return function(ast) {
+        ast.type.should.be.eql('WhileStatement');
+
+        testValidator(ast.test);
+        bodyValidator(ast.body);
+    };
+};
+
+e.expectForStatementFn = function(initValidator, testValidator, updateValidator, bodyValidator) {
+    return function(ast) {
+        ast.type.should.be.eql('ForStatement');
+
+        initValidator(ast.init);
+        testValidator(ast.test);
+        updateValidator(ast.update);
+        bodyValidator(ast.body);
+    };
+};
+
+e.expectForInStatementFn = function(leftValidator, rightValidator, bodyValidator) {
+    return function(ast) {
+        ast.type.should.be.eql('ForInStatement');
+
+        leftValidator(ast.left);
+        rightValidator(ast.right);
+        bodyValidator(ast.body);
+    };
+};
+
+e.expectWithStatementFn = function(testValidator, bodyValidator) {
     return function(ast) {
         ast.type.should.be.eql('WithStatement');
 
         testValidator(ast.test);
-        statementValidator(ast.statement);
+        bodyValidator(ast.body);
     };
 };
 
