@@ -123,6 +123,13 @@ e.expectSequenceExpressionFn = function(validators) {
     };
 };
 
+e.expectIdentifierFn = function(identifier) {
+    return function(ast) {
+        ast.type.should.be.eql('Identifier');
+        ast.value.should.be.eql(identifier);
+    };
+};
+
 e.expectLiteralFn = function(expectedValue) {
     return function(ast) {
         ast.type.should.be.eql('Literal');
@@ -130,10 +137,10 @@ e.expectLiteralFn = function(expectedValue) {
     };
 };
 
-e.expectVariableDeclaratorFn = function(identifier, validator) {
+e.expectVariableDeclaratorFn = function(idValidator, initValidator) {
     return function(ast) {
         ast.type.should.be.eql('VariableDeclarator');
-        ast.id.should.be.eql(identifier);
-        validator(ast.init);
+        idValidator(ast.id);
+        initValidator(ast.init);
     };
 };

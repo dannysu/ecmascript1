@@ -20,19 +20,19 @@ describe('parser', function() {
             u.expectProgram(ast, [
                 u.expectVariableDeclarationFn([
                     u.expectVariableDeclaratorFn(
-                        '_',
+                        u.expectIdentifierFn('_'),
                         should.not.exist
                     )
                 ]),
                 u.expectVariableDeclarationFn([
                     u.expectVariableDeclaratorFn(
-                        '$',
+                        u.expectIdentifierFn('$'),
                         should.not.exist
                     )
                 ]),
                 u.expectVariableDeclarationFn([
                     u.expectVariableDeclaratorFn(
-                        'abcdefg',
+                        u.expectIdentifierFn('abcdefg'),
                         should.not.exist
                     )
                 ])
@@ -52,19 +52,19 @@ describe('parser', function() {
             u.expectProgram(ast, [
                 u.expectVariableDeclarationFn([
                     u.expectVariableDeclaratorFn(
-                        '_',
+                        u.expectIdentifierFn('_'),
                         u.expectLiteralFn('1')
                     )
                 ]),
                 u.expectVariableDeclarationFn([
                     u.expectVariableDeclaratorFn(
-                        '$',
+                        u.expectIdentifierFn('$'),
                         u.expectLiteralFn('2')
                     )
                 ]),
                 u.expectVariableDeclarationFn([
                     u.expectVariableDeclaratorFn(
-                        'abcdefg',
+                        u.expectIdentifierFn('abcdefg'),
                         u.expectLiteralFn('3')
                     )
                 ])
@@ -83,25 +83,25 @@ describe('parser', function() {
             u.expectProgram(ast, [
                 u.expectVariableDeclarationFn([
                     u.expectVariableDeclaratorFn(
-                        '_',
+                        u.expectIdentifierFn('_'),
                         should.not.exist
                     ),
                     u.expectVariableDeclaratorFn(
-                        '$',
+                        u.expectIdentifierFn('$'),
                         should.not.exist
                     )
                 ]),
                 u.expectVariableDeclarationFn([
                     u.expectVariableDeclaratorFn(
-                        'a',
+                        u.expectIdentifierFn('a'),
                         u.expectLiteralFn('1')
                     ),
                     u.expectVariableDeclaratorFn(
-                        'b',
+                        u.expectIdentifierFn('b'),
                         u.expectLiteralFn('2')
                     ),
                     u.expectVariableDeclaratorFn(
-                        'c',
+                        u.expectIdentifierFn('c'),
                         u.expectLiteralFn('3')
                     )
                 ])

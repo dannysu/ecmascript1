@@ -132,7 +132,7 @@ describe('parser', function() {
                 u.expectForStatementFn(
                     u.expectVariableDeclarationFn([
                         u.expectVariableDeclaratorFn(
-                            'a',
+                            u.expectIdentifierFn('a'),
                             u.expectLiteralFn('1')
                         )
                     ]),
@@ -161,11 +161,11 @@ describe('parser', function() {
                 u.expectForStatementFn(
                     u.expectVariableDeclarationFn([
                         u.expectVariableDeclaratorFn(
-                            'a',
+                            u.expectIdentifierFn('a'),
                             u.expectLiteralFn('1')
                         ),
                         u.expectVariableDeclaratorFn(
-                            'b',
+                            u.expectIdentifierFn('b'),
                             u.expectLiteralFn('2')
                         )
                     ]),

@@ -47,7 +47,7 @@ p.expectIdentifier = function() {
         throw new SyntaxError('TODO');
     }
 
-    return token;
+    return new estree.Identifier(token.value);
 };
 
 p.expectKeywords = function(keywords) {
@@ -92,7 +92,7 @@ p.expectLiteral = function() {
         throw new SyntaxError('TODO');
     }
 
-    return token;
+    return new estree.Literal(token.value);
 }
 
 p.matchKeywords = function(keywords) {
@@ -159,8 +159,7 @@ p.matchAssignmentExpression = function() {
  */
 p.parsePrimaryExpression = function() {
     if (this.matchLiteral()) {
-        const token = this.expectLiteral();
-        return new estree.Literal(token.value);
+        return this.expectLiteral();
     }
     return null;
 };
@@ -194,7 +193,7 @@ p.parseExpression = function(optional) {
         return new estree.SequenceExpression(expressions);
     }
     else if (expressions.length === 1) {
-        return new estree.Literal(expressions[0].value);
+        return expressions[0];
     }
     else if (optional) {
         return null;
@@ -226,13 +225,13 @@ p.parseVariableDeclarationList = function() {
 
     // Destructuring not yet on by default in nodejs
     let declarator = this.parseVariableDeclaration();
-    let identifier = declarator.identifier.value;
+    let identifier = declarator.identifier;
     let assignment = declarator.assignment;
     declarations.push(new estree.VariableDeclarator(identifier, assignment));
     while (this.matchPunctuators(",")) {
         this.expectPunctuators(",");
         declarator = this.parseVariableDeclaration();
-        identifier = declarator.identifier.value;
+        identifier = declarator.identifier;
         assignment = declarator.assignment;
         declarations.push(new estree.VariableDeclarator(identifier, assignment));
     }

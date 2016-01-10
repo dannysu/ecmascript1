@@ -22,6 +22,13 @@ class Expression extends Node {
     }
 }
 
+class Identifier extends Expression {
+    constructor(value) {
+        super('Identifier');
+        this.value = value;
+    }
+}
+
 class Literal extends Expression {
     constructor(value) {
         super('Literal');
@@ -129,6 +136,7 @@ class VariableDeclarator extends Node {
 }
 
 e.Program = Program;
+e.Identifier = Identifier;
 e.Literal = Literal;
 e.SequenceExpression = SequenceExpression;
 e.BlockStatement = BlockStatement;
