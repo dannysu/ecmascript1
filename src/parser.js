@@ -164,7 +164,7 @@ p.matchLiteral = function() {
 
 p.matchStatement = function() {
     return this.matchPunctuators(";") ||
-        this.matchKeywords(["if", "var", "with", "while", "for", "continue", "break"]) ||
+        this.matchKeywords(["if", "var", "with", "while", "for", "continue", "break", "return"]) ||
         this.matchAssignmentExpression();
 };
 
@@ -532,13 +532,13 @@ p.parseVariableDeclarationList = function() {
     return new estree.VariableDeclaration(declarations);
 };
 
-p.parseBlock = function(insideIteration) {
+p.parseBlock = function(insideIteration, insideFunction) {
     const statements = [];
 
     this.expectPunctuators("{");
 
     while (this.matchStatement()) {
-        statements.push(this.parseStatement(insideIteration));
+        statements.push(this.parseStatement(insideIteration, insideFunction));
     }
 
     this.expectPunctuators("}");
@@ -559,7 +559,7 @@ p.parseExpressionStatement = function() {
     return new estree.ExpressionStatement(expression);
 };
 
-p.parseIfStatement = function(insideIteration) {
+p.parseIfStatement = function(insideIteration, insideFunction) {
     this.expectKeywords("if");
     this.expectPunctuators("(");
 
@@ -567,7 +567,7 @@ p.parseIfStatement = function(insideIteration) {
 
     this.expectPunctuators(")");
 
-    const consequent = this.parseStatement(insideIteration);
+    const consequent = this.parseStatement(insideIteration, insideFunction);
     if (consequent === null) {
         throw new SyntaxError('Expecting statement for if-statement');
     }
@@ -576,7 +576,7 @@ p.parseIfStatement = function(insideIteration) {
 
     if (this.matchKeywords("else")) {
         this.expectKeywords("else");
-        alternate = this.parseStatement(insideIteration);
+        alternate = this.parseStatement(insideIteration, insideFunction);
         if (alternate === null) {
             throw new SyntaxError('Expecting statement for else block in if-statement');
         }
@@ -687,7 +687,7 @@ p.parseIterationStatement = function() {
     }
 };
 
-p.parseWithStatement = function(insideIteration) {
+p.parseWithStatement = function(insideIteration, insideFunction) {
     this.expectKeywords("with");
     this.expectPunctuators("(");
 
@@ -695,7 +695,7 @@ p.parseWithStatement = function(insideIteration) {
 
     this.expectPunctuators(")");
 
-    const statement = this.parseStatement(insideIteration);
+    const statement = this.parseStatement(insideIteration, insideFunction);
     if (statement === null) {
         throw new SyntaxError('Expecting statement for with-statement');
     }
@@ -715,10 +715,21 @@ p.parseBreakStatement = function() {
     return new estree.BreakStatement();
 };
 
-p.parseStatement = function(insideIteration) {
+p.parseReturnStatement = function() {
+    this.expectKeywords("return");
+    let expression = null;
+    if (this.matchAssignmentExpression()) {
+        expression = this.parseAssignmentExpression();
+    }
+    this.expectPunctuators(";");
+
+    return new estree.ReturnStatement(expression);
+};
+
+p.parseStatement = function(insideIteration, insideFunction) {
     // Parse Block
     if (this.matchPunctuators("{")) {
-        return this.parseBlock(insideIteration);
+        return this.parseBlock(insideIteration, insideFunction);
     }
     // Parse Variable Statement
     else if (this.matchKeywords("var")) {
@@ -735,7 +746,7 @@ p.parseStatement = function(insideIteration) {
     }
     // Parse If Statement
     else if (this.matchKeywords("if")) {
-        return this.parseIfStatement(insideIteration);
+        return this.parseIfStatement(insideIteration, insideFunction);
     }
     // Parse Iteration Statement
     else if (this.matchKeywords("while") ||
@@ -744,7 +755,7 @@ p.parseStatement = function(insideIteration) {
     }
     // Parse With Statement
     else if (this.matchKeywords("with")) {
-        return this.parseWithStatement(insideIteration);
+        return this.parseWithStatement(insideIteration, insideFunction);
     }
     else if (this.matchKeywords("continue")) {
         if (insideIteration) {
@@ -762,14 +773,53 @@ p.parseStatement = function(insideIteration) {
             throw new SyntaxError('TODO');
         }
     }
+    else if (this.matchKeywords("return")) {
+        if (insideFunction) {
+            return this.parseReturnStatement();
+        }
+        else {
+            throw new SyntaxError('TODO');
+        }
+    }
 
     // TODO: Need to parse other types of statements
     return null;
 };
 
+p.parseFunction = function() {
+    this.expectKeywords("function");
+
+    // Parse name of the function
+    const identifier = this.expectIdentifier();
+
+    let parameters = [];
+
+    this.expectPunctuators("(");
+
+    // Parse optional parameter list
+    if (this.matchIdentifier()) {
+        parameters.push(this.expectIdentifier());
+        while (this.matchPunctuators(",")) {
+            this.expectPunctuators(",");
+            parameters.push(this.expectIdentifier());
+        }
+    }
+
+    this.expectPunctuators(")");
+
+    // Parse function body
+    const body = this.parseBlock(false, true);
+
+    return new estree.FunctionDeclaration(identifier, parameters, body);
+};
+
 p.parseSourceElement = function() {
-    // TODO: Need to parse function declaration at some point
-    return this.parseStatement(false);
+    if (this.matchKeywords("function")) {
+        return this.parseFunction();
+    }
+    else {
+        return this.parseStatement(false, false);
+    }
 }
 
 p.parseProgram = function() {

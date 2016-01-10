@@ -26,6 +26,19 @@ e.expectProgram = function(ast, validators) {
     }
 };
 
+e.expectFunctionDeclarationFn = function(idValidator, paramValidators, bodyValidator) {
+    return function(ast) {
+        ast.type.should.be.eql('FunctionDeclaration');
+        idValidator(ast.id);
+        ast.params.length.should.be.eql(paramValidators.length);
+        for (let param of ast.params) {
+            const validator = paramValidators.shift();
+            validator(param);
+        }
+        bodyValidator(ast.body);
+    };
+};
+
 e.expectBlockFn = function(validators) {
     return function(ast) {
         ast.type.should.be.eql('BlockStatement');
@@ -119,6 +132,13 @@ e.expectContinueStatementFn = function() {
 e.expectBreakStatementFn = function() {
     return function(ast) {
         ast.type.should.be.eql('BreakStatement');
+    };
+};
+
+e.expectReturnStatementFn = function(validator) {
+    return function(ast) {
+        ast.type.should.be.eql('ReturnStatement');
+        validator(ast.argument);
     };
 };
 

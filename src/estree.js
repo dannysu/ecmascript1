@@ -22,6 +22,15 @@ class Expression extends Node {
     }
 }
 
+class Function extends Node {
+    constructor(type, id, params, body) {
+        super(type);
+        this.id = id;
+        this.params = params;
+        this.body = body;
+    }
+}
+
 class Identifier extends Expression {
     constructor(value) {
         super('Identifier');
@@ -154,6 +163,13 @@ class ExpressionStatement extends Statement {
     }
 }
 
+class ReturnStatement extends Statement {
+    constructor(argument) {
+        super('ReturnStatement');
+        this.argument = argument;
+    }
+}
+
 class ContinueStatement extends Statement {
     constructor(expression) {
         super('ContinueStatement');
@@ -216,6 +232,12 @@ class Declaration extends Statement {
     }
 }
 
+class FunctionDeclaration extends Function {
+    constructor(id, params, body) {
+        super('FunctionDeclaration', id, params, body);
+    }
+}
+
 class VariableDeclaration extends Declaration {
     constructor(declarations) {
         super('VariableDeclaration');
@@ -249,6 +271,7 @@ e.SequenceExpression = SequenceExpression;
 e.BlockStatement = BlockStatement;
 e.EmptyStatement = EmptyStatement;
 e.ExpressionStatement = ExpressionStatement;
+e.ReturnStatement = ReturnStatement;
 e.ContinueStatement = ContinueStatement;
 e.BreakStatement = BreakStatement;
 e.IfStatement = IfStatement;
@@ -256,5 +279,6 @@ e.WhileStatement = WhileStatement;
 e.ForStatement = ForStatement;
 e.ForInStatement = ForInStatement;
 e.WithStatement = WithStatement;
+e.FunctionDeclaration = FunctionDeclaration;
 e.VariableDeclaration = VariableDeclaration;
 e.VariableDeclarator = VariableDeclarator;
