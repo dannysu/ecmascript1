@@ -123,10 +123,52 @@ e.expectSequenceExpressionFn = function(validators) {
     };
 };
 
+e.expectThisExpressionFn = function() {
+    return function(ast) {
+        ast.type.should.be.eql('ThisExpression');
+    };
+};
+
 e.expectIdentifierFn = function(identifier) {
     return function(ast) {
         ast.type.should.be.eql('Identifier');
         ast.value.should.be.eql(identifier);
+    };
+};
+
+e.expectBinaryExpressionFn = function(operator, leftValidator, rightValidator) {
+    return function(ast) {
+        ast.type.should.be.eql('BinaryExpression');
+        ast.operator.should.be.eql(operator);
+        leftValidator(ast.left);
+        rightValidator(ast.right);
+    };
+};
+
+e.expectUnaryExpressionFn = function(operator, argumentValidator, prefix) {
+    return function(ast) {
+        ast.type.should.be.eql('UnaryExpression');
+        ast.operator.should.be.eql(operator);
+        ast.prefix.should.be.eql(prefix);
+        argumentValidator(ast.argument);
+    };
+};
+
+e.expectUpdateExpressionFn = function(operator, argumentValidator, prefix) {
+    return function(ast) {
+        ast.type.should.be.eql('UpdateExpression');
+        ast.operator.should.be.eql(operator);
+        ast.prefix.should.be.eql(prefix);
+        argumentValidator(ast.argument);
+    };
+};
+
+e.expectConditionalExpressionFn = function(testValidator, consequentValidator, alternateValidator) {
+    return function(ast) {
+        ast.type.should.be.eql('ConditionalExpression');
+        testValidator(ast.test);
+        consequentValidator(ast.consequent);
+        alternateValidator(ast.alternate);
     };
 };
 

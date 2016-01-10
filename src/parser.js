@@ -8,6 +8,28 @@ const estree = require('./estree.js');
 
 const e = exports;
 
+const operatorPrecedence = {
+    '||': 0,
+    '&&': 1,
+    '|': 2,
+    '^': 3,
+    '&': 4,
+    '==': 5,
+    '!=': 5,
+    '<': 6,
+    '>': 6,
+    '<=': 6,
+    '=>': 6,
+    '<<': 7,
+    '>>': 7,
+    '>>>': 7,
+    '+': 8,
+    '-': 8,
+    '*': 9,
+    '/': 9,
+    '%': 9
+};
+
 function Parser(sourceText) {
     this.tokens = [];
     this.lexer = new Lexer(sourceText);
@@ -65,7 +87,7 @@ p.expectKeywords = function(keywords) {
         throw new SyntaxError('TODO');
     }
 
-    // TODO: Add to AST
+    return token;
 };
 
 p.expectPunctuators = function(punctuators) {
@@ -83,7 +105,7 @@ p.expectPunctuators = function(punctuators) {
         throw new SyntaxError('TODO');
     }
 
-    // TODO: Add to AST
+    return token;
 };
 
 p.expectLiteral = function() {
@@ -147,15 +169,25 @@ p.matchStatement = function() {
 };
 
 p.matchPrimaryExpression = function() {
-    return this.matchIdentifier() || this.matchLiteral();
+    return this.matchKeywords("this") ||
+        this.matchLiteral() ||
+        this.matchIdentifier() ||
+        this.matchPunctuators("(");
+};
+
+p.matchUnaryExpression = function() {
+    return this.matchKeywords(["delete", "void", "typeof"]) ||
+        this.matchPunctuators(["++", "--", "+", "-", "~", "!"]);
 };
 
 p.matchAssignmentExpression = function() {
-    return this.matchLeftHandSideExpression();
+    return this.matchUnaryExpression() ||
+        this.matchLeftHandSideExpression();
 };
 
 p.matchMemberExpression = function() {
-    return this.matchPrimaryExpression() || this.matchKeywords("new");
+    return this.matchPrimaryExpression() ||
+        this.matchKeywords("new");
 };
 
 p.matchLeftHandSideExpression = p.matchMemberExpression;
@@ -164,15 +196,23 @@ p.matchLeftHandSideExpression = p.matchMemberExpression;
  * Actual recursive descent part of things
  */
 p.parsePrimaryExpression = function() {
-    if (this.matchLiteral()) {
+    if (this.matchKeywords("this")) {
+        this.expectKeywords("this");
+        return new estree.ThisExpression();
+    }
+    else if (this.matchLiteral()) {
         return this.expectLiteral();
     }
+    else if (this.matchIdentifier()) {
+        return this.expectIdentifier();
+    }
+    else if (this.matchPunctuators("(")) {
+        this.expectPunctuators("(");
+        const expression = this.parseExpression();
+        this.expectPunctuators(")");
+        return expression;
+    }
     return null;
-};
-
-p.parseAssignmentExpression = function() {
-    // TODO: Incomplete logic. Needs ability to differentiate between ConditionalExpression vs LeftHandSideExpression
-    return this.parseLeftHandSideExpression();
 };
 
 p.parseArguments = function() {
@@ -278,6 +318,147 @@ p.parseNewOrCallOrMemberExpression = function(couldBeNewExpression, couldBeCallE
 
 p.parseLeftHandSideExpression = function() {
     return this.parseNewOrCallOrMemberExpression(true, true).object;
+};
+
+p.parsePostfixExpression = function() {
+    let lhs = true;
+    let expression = this.parseLeftHandSideExpression();
+
+    // TODO: Deny line terminator here
+
+    if (this.matchPunctuators("++")) {
+        lhs = false;
+        this.expectPunctuators("++");
+        expression = new estree.UpdateExpression("++", expression, false);
+    }
+    else if (this.matchPunctuators("--")) {
+        lhs = false;
+        this.expectPunctuators("--");
+        expression = new estree.UpdateExpression("--", expression, false);
+    }
+
+    return {
+        ast: expression,
+        lhs: lhs
+    };
+};
+
+p.parseUnaryExpression = function() {
+    const unaryKeywords = ["delete", "void", "typeof"];
+    const unaryPunctuators = ["++", "--", "+", "-", "~", "!"];
+
+    if (this.matchKeywords(unaryKeywords)) {
+        const operatorToken = this.expectKeywords(unaryKeywords);
+        const argument = this.parseUnaryExpression();
+        return {
+            ast: estree.UnaryExpression(operatorToken.value, argument.ast, true),
+            lhs: false
+        }
+    }
+    else if (this.matchPunctuators(unaryPunctuators)) {
+        const operatorToken = this.expectPunctuators(unaryPunctuators);
+        const argument = this.parseUnaryExpression();
+
+        let ast;
+        if (operatorToken.value === '++' || operatorToken.value === '--') {
+            ast = new estree.UpdateExpression(operatorToken.value, argument.ast, true);
+        }
+        else {
+            ast = new estree.UnaryExpression(operatorToken.value, argument.ast, true);
+        }
+
+        return {
+            ast: ast,
+            lhs: false
+        };
+    }
+    else {
+        return this.parsePostfixExpression();
+    }
+};
+
+// Uses precedence climbing to deal with binary expressions, all of which have
+// left-to-right associtivity in this case.
+p.parseBinaryExpression = function(minPrecedence) {
+    const punctuators = [
+        '||', '&&', '|', '^', '&', '==', '!=', '<', '>', '<=', '=>',
+        '<<', '>>', '>>>', '+', '-', '*', '/', '%'
+    ];
+
+    const result = this.parseUnaryExpression();
+    let ast = result.ast;
+    let lhs = result.lhs
+
+    while (this.matchPunctuators(punctuators) &&
+           operatorPrecedence[this.next().value] >= minPrecedence) {
+
+        // If any operator is encountered, then the result cannot be
+        // LeftHandSideExpression anymore
+        lhs = false;
+
+        const precedenceLevel = operatorPrecedence[this.next().value];
+        const operatorToken = this.expectPunctuators(punctuators);
+
+        const right = this.parseBinaryExpression(precedenceLevel + 1);
+        if (operatorToken.value === '||' || operatorToken.value === '&&') {
+            ast = new estree.LogicalExpression(operatorToken.value, ast, right.ast);
+        }
+        else {
+            ast = new estree.BinaryExpression(operatorToken.value, ast, right.ast);
+        }
+    }
+
+    return {
+        ast: ast,
+        lhs: lhs
+    };
+};
+
+p.parseConditionalExpression = function() {
+    const result = this.parseBinaryExpression(0);
+    let ast = result.ast;
+    let lhs = result.lhs;
+
+    if (this.matchPunctuators("?")) {
+        this.expectPunctuators("?");
+        const consequent = this.parseAssignmentExpression();
+        this.expectPunctuators(":");
+        const alternate = this.parseAssignmentExpression();
+
+        ast = new estree.ConditionalExpression(ast, consequent, alternate);
+        lhs = false;
+    }
+
+    return {
+        ast: ast,
+        lhs: lhs
+    };
+};
+
+p.parseAssignmentExpression = function() {
+    // Won't know immediately whether to parse as ConditionalExpression or
+    // LeftHandSideExpression. We'll only know later on during parsing if we
+    // come across things that cannot be in LeftHandSideExpression.
+    const result = this.parseConditionalExpression();
+    if (result.lhs) {
+        // Once it is determined that the parse result yielded
+        // LeftHandSideExpression though, then we can parse the remaining
+        // AssignmentExpression with that knowledge
+        const assignmentOperators = ["=", "*=", "/=", "%=", "+=", "-=", "<<=",
+            ">>=", ">>>=", "&=", "^=", "|="];
+        if (this.matchPunctuators(assignmentOperators)) {
+            const left = result.ast;
+            const operatorToken = this.expectPunctuators(assignmentOperators);
+            const right = this.parseAssignmentExpression();
+            return new estree.AssignmentExpression(operatorToken.value, left, right);
+        }
+        else {
+            return result.ast;
+        }
+    }
+    else {
+        return result.ast;
+    }
 };
 
 p.parseExpression = function(optional) {

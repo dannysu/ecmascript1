@@ -279,7 +279,13 @@ l.lexIdentifier = function() {
     }
 
     const word = this.source.substring(this.start, this.pos);
-    if (isKeyword(word)) {
+    if (word === 'true' || word === 'false') {
+        this.addToken(tokenTypes.booleanLiteral);
+    }
+    else if (word === 'null') {
+        this.addToken(tokenTypes.nullLiteral);
+    }
+    else if (isKeyword(word)) {
         this.addToken(tokenTypes.keyword);
     }
     else {

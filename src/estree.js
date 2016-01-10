@@ -36,12 +36,72 @@ class Literal extends Expression {
     }
 }
 
+class ThisExpression extends Expression {
+    constructor() {
+        super('ThisExpression');
+    }
+}
+
+class UnaryExpression extends Expression {
+    constructor(operator, argument, prefix) {
+        super('UnaryExpression');
+        this.operator = operator;
+        this.argument = argument;
+        this.prefix = prefix;
+    }
+}
+
+class UpdateExpression extends Expression {
+    constructor(operator, argument, prefix) {
+        super('UpdateExpression');
+        this.operator = operator;
+        this.argument = argument;
+        this.prefix = prefix;
+    }
+}
+
+class BinaryExpression extends Expression {
+    constructor(operator, left, right) {
+        super('BinaryExpression');
+        this.operator = operator;
+        this.left = left;
+        this.right = right;
+    }
+}
+
+class AssignmentExpression extends Expression {
+    constructor(operator, left, right) {
+        super('AssignmentExpression');
+        this.operator = operator;
+        this.left = left;
+        this.right = right;
+    }
+}
+
+class LogicalExpression extends Expression {
+    constructor(operator, left, right) {
+        super('LogicalExpression');
+        this.operator = operator;
+        this.left = left;
+        this.right = right;
+    }
+}
+
 class MemberExpression extends Expression {
     constructor(object, property, computed) {
         super('MemberExpression');
         this.object = object;
         this.property = property;
         this.computed = computed;
+    }
+}
+
+class ConditionalExpression extends Expression {
+    constructor(test, consequent, alternate) {
+        super('ConditionalExpression');
+        this.test = test;
+        this.consequent = consequent;
+        this.alternate = alternate;
     }
 }
 
@@ -163,7 +223,14 @@ class VariableDeclarator extends Node {
 e.Program = Program;
 e.Identifier = Identifier;
 e.Literal = Literal;
+e.ThisExpression = ThisExpression;
+e.UnaryExpression = UnaryExpression;
+e.UpdateExpression = UpdateExpression;
+e.BinaryExpression = BinaryExpression;
+e.AssignmentExpression = AssignmentExpression;
+e.LogicalExpression = LogicalExpression;
 e.MemberExpression = MemberExpression;
+e.ConditionalExpression = ConditionalExpression;
 e.CallExpression = CallExpression;
 e.NewExpression = NewExpression;
 e.SequenceExpression = SequenceExpression;

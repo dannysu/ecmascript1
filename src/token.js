@@ -16,6 +16,8 @@ const tokenTypes = {
     comment:         'comment',
     stringLiteral:   'stringLiteral',
     numericLiteral:  'numericLiteral',
+    booleanLiteral:  'booleanLiteral',
+    nullLiteral:     'nullLiteral',
     punctuator:      'punctuator',
     keyword:         'keyword',
     identifier:      'identifier',
