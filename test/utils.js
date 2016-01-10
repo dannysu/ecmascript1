@@ -144,3 +144,35 @@ e.expectVariableDeclaratorFn = function(idValidator, initValidator) {
         initValidator(ast.init);
     };
 };
+
+e.expectMemberExpressionFn = function(objectValidator, propertyValidator) {
+    return function(ast) {
+        ast.type.should.be.eql('MemberExpression');
+
+        objectValidator(ast.object);
+        propertyValidator(ast.property, ast.computed);
+    };
+};
+
+function validateNewOrCallExpression(type, calleeValidator, argsValidators) {
+    return function(ast) {
+        ast.type.should.be.eql(type);
+
+        calleeValidator(ast.callee);
+
+        const args = ast.arguments;
+        args.length.should.be.eql(argsValidators.length);
+        for (let argument of args) {
+            const validator = argsValidators.shift();
+            validator(argument);
+        }
+    };
+}
+
+e.expectNewExpressionFn = function(calleeValidator, argsValidators) {
+    return validateNewOrCallExpression('NewExpression', calleeValidator, argsValidators);
+};
+
+e.expectCallExpressionFn = function(calleeValidator, argsValidators) {
+    return validateNewOrCallExpression('CallExpression', calleeValidator, argsValidators);
+};

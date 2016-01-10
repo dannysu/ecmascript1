@@ -151,8 +151,14 @@ p.matchPrimaryExpression = function() {
 };
 
 p.matchAssignmentExpression = function() {
-    return this.matchPrimaryExpression();
+    return this.matchLeftHandSideExpression();
 };
+
+p.matchMemberExpression = function() {
+    return this.matchPrimaryExpression() || this.matchKeywords("new");
+};
+
+p.matchLeftHandSideExpression = p.matchMemberExpression;
 
 /*
  * Actual recursive descent part of things
@@ -165,7 +171,113 @@ p.parsePrimaryExpression = function() {
 };
 
 p.parseAssignmentExpression = function() {
-    return this.parsePrimaryExpression();
+    // TODO: Incomplete logic. Needs ability to differentiate between ConditionalExpression vs LeftHandSideExpression
+    return this.parseLeftHandSideExpression();
+};
+
+p.parseArguments = function() {
+    const args = [];
+
+    this.expectPunctuators("(");
+
+    if (this.matchAssignmentExpression()) {
+        args.push(this.parseAssignmentExpression());
+        while (this.matchPunctuators(",")) {
+            args.push(this.parseAssignmentExpression());
+        }
+    }
+
+    this.expectPunctuators(")");
+
+    return args;
+};
+
+p.parseRemainingMemberExpression = function(object) {
+    while (this.matchPunctuators([".", "["])) {
+        if (this.matchPunctuators(".")) {
+            this.expectPunctuators(".");
+            const identifier = this.expectIdentifier();
+            object = new estree.MemberExpression(object, identifier, false);
+        }
+        else {
+            this.expectPunctuators("[");
+            const expression = this.parseExpression();
+            this.expectPunctuators("]");
+            object = new estree.MemberExpression(object, expression, true);
+        }
+    }
+
+    return object;
+};
+
+p.parseRemainingCallExpression = function(object) {
+    let args = this.parseArguments();
+    object = new estree.CallExpression(object, args);
+
+    while (this.matchPunctuators([".", "[", "("])) {
+        if (this.matchPunctuators(".")) {
+            this.expectPunctuators(".");
+            const identifier = this.expectIdentifier();
+            object = new estree.MemberExpression(object, identifier, false);
+        }
+        else if (this.matchPunctuators("[")) {
+            this.expectPunctuators("[");
+            const expression = this.parseExpression();
+            this.expectPunctuators("]");
+            object = new estree.MemberExpression(object, expression, true);
+        }
+        else if (this.matchPunctuators("(")) {
+            args = this.parseArguments();
+            object = new estree.CallExpression(object, args);
+        }
+    }
+
+    return object;
+};
+
+p.parseNewOrCallOrMemberExpression = function(couldBeNewExpression, couldBeCallExpression) {
+    let object = null;
+
+    if (this.matchKeywords("new")) {
+        this.expectKeywords("new");
+        const result = this.parseNewOrCallOrMemberExpression(couldBeNewExpression, false);
+        couldBeNewExpression = result.couldBeNewExpression;
+
+        let args = [];
+
+        if (!couldBeNewExpression || this.matchPunctuators("(")) {
+            args = this.parseArguments();
+
+            // As soon as ( Arguments ) is encountered, then we're no longer
+            // parsing at the NewExpression level.
+            // Also, if couldBeNewExpression is false, then always try to
+            // parse Arguments it has to be there.
+            couldBeNewExpression = false;
+        }
+
+        object = new estree.NewExpression(result.object, args);
+    }
+    else {
+        object = this.parsePrimaryExpression();
+    }
+
+    object = this.parseRemainingMemberExpression(object);
+
+    // If at the end of trying to parse MemberExpression we see Arguments
+    // again, then that means this is a CallExpression instead.
+    if (this.matchPunctuators("(") && couldBeCallExpression) {
+        couldBeNewExpression = false;
+        object = this.parseRemainingCallExpression(object);
+    }
+
+    return {
+        object: object,
+        couldBeNewExpression: couldBeNewExpression
+    };
+};
+
+p.parseLeftHandSideExpression = function() {
+    return this.parseNewOrCallOrMemberExpression(true, true).object;
 };
 
 p.parseExpression = function(optional) {

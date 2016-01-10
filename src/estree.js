@@ -36,6 +36,31 @@ class Literal extends Expression {
     }
 }
 
+class MemberExpression extends Expression {
+    constructor(object, property, computed) {
+        super('MemberExpression');
+        this.object = object;
+        this.property = property;
+        this.computed = computed;
+    }
+}
+
+class CallExpression extends Expression {
+    constructor(callee, args) {
+        super('CallExpression');
+        this.callee = callee;
+        this.arguments = args;
+    }
+}
+
+class NewExpression extends Expression {
+    constructor(callee, args) {
+        super('NewExpression');
+        this.callee = callee;
+        this.arguments = args;
+    }
+}
+
 class SequenceExpression extends Expression {
     constructor(expressions) {
         super('SequenceExpression');
@@ -138,6 +163,9 @@ class VariableDeclarator extends Node {
 e.Program = Program;
 e.Identifier = Identifier;
 e.Literal = Literal;
+e.MemberExpression = MemberExpression;
+e.CallExpression = CallExpression;
+e.NewExpression = NewExpression;
 e.SequenceExpression = SequenceExpression;
 e.BlockStatement = BlockStatement;
 e.EmptyStatement = EmptyStatement;
