@@ -164,7 +164,7 @@ p.matchLiteral = function() {
 
 p.matchStatement = function() {
     return this.matchPunctuators(";") ||
-        this.matchKeywords(["if", "var", "with", "while", "for"]) ||
+        this.matchKeywords(["if", "var", "with", "while", "for", "continue", "break"]) ||
         this.matchAssignmentExpression();
 };
 
@@ -532,13 +532,13 @@ p.parseVariableDeclarationList = function() {
     return new estree.VariableDeclaration(declarations);
 };
 
-p.parseBlock = function() {
+p.parseBlock = function(insideIteration) {
     const statements = [];
 
     this.expectPunctuators("{");
 
     while (this.matchStatement()) {
-        statements.push(this.parseStatement());
+        statements.push(this.parseStatement(insideIteration));
     }
 
     this.expectPunctuators("}");
@@ -559,7 +559,7 @@ p.parseExpressionStatement = function() {
     return new estree.ExpressionStatement(expression);
 };
 
-p.parseIfStatement = function() {
+p.parseIfStatement = function(insideIteration) {
     this.expectKeywords("if");
     this.expectPunctuators("(");
 
@@ -567,7 +567,7 @@ p.parseIfStatement = function() {
 
     this.expectPunctuators(")");
 
-    const consequent = this.parseStatement();
+    const consequent = this.parseStatement(insideIteration);
     if (consequent === null) {
         throw new SyntaxError('Expecting statement for if-statement');
     }
@@ -576,7 +576,7 @@ p.parseIfStatement = function() {
 
     if (this.matchKeywords("else")) {
         this.expectKeywords("else");
-        alternate = this.parseStatement();
+        alternate = this.parseStatement(insideIteration);
         if (alternate === null) {
             throw new SyntaxError('Expecting statement for else block in if-statement');
         }
@@ -593,7 +593,7 @@ p.parseWhileStatement = function() {
 
     this.expectPunctuators(")");
 
-    const statement = this.parseStatement();
+    const statement = this.parseStatement(true);
     if (statement === null) {
         throw new SyntaxError('Expecting statement for while-statement');
     }
@@ -665,7 +665,7 @@ p.parseForStatement = function() {
 
     this.expectPunctuators(")");
 
-    const statement = this.parseStatement();
+    const statement = this.parseStatement(true);
     if (statement === null) {
         throw new SyntaxError('Expecting statement for for-statement');
     }
@@ -687,7 +687,7 @@ p.parseIterationStatement = function() {
     }
 };
 
-p.parseWithStatement = function() {
+p.parseWithStatement = function(insideIteration) {
     this.expectKeywords("with");
     this.expectPunctuators("(");
 
@@ -695,7 +695,7 @@ p.parseWithStatement = function() {
 
     this.expectPunctuators(")");
 
-    const statement = this.parseStatement();
+    const statement = this.parseStatement(insideIteration);
     if (statement === null) {
         throw new SyntaxError('Expecting statement for with-statement');
     }
@@ -703,10 +703,22 @@ p.parseWithStatement = function() {
     return new estree.WithStatement(test, statement);
 };
 
-p.parseStatement = function() {
+p.parseContinueStatement = function() {
+    this.expectKeywords("continue");
+    this.expectPunctuators(";");
+    return new estree.ContinueStatement();
+};
+
+p.parseBreakStatement = function() {
+    this.expectKeywords("break");
+    this.expectPunctuators(";");
+    return new estree.BreakStatement();
+};
+
+p.parseStatement = function(insideIteration) {
     // Parse Block
     if (this.matchPunctuators("{")) {
-        return this.parseBlock();
+        return this.parseBlock(insideIteration);
     }
     // Parse Variable Statement
     else if (this.matchKeywords("var")) {
@@ -723,7 +735,7 @@ p.parseStatement = function() {
     }
     // Parse If Statement
     else if (this.matchKeywords("if")) {
-        return this.parseIfStatement();
+        return this.parseIfStatement(insideIteration);
     }
     // Parse Iteration Statement
     else if (this.matchKeywords("while") ||
@@ -732,7 +744,23 @@ p.parseStatement = function() {
     }
     // Parse With Statement
     else if (this.matchKeywords("with")) {
-        return this.parseWithStatement();
+        return this.parseWithStatement(insideIteration);
+    }
+    else if (this.matchKeywords("continue")) {
+        if (insideIteration) {
+            return this.parseContinueStatement();
+        }
+        else {
+            throw new SyntaxError('TODO');
+        }
+    }
+    else if (this.matchKeywords("break")) {
+        if (insideIteration) {
+            return this.parseBreakStatement();
+        }
+        else {
+            throw new SyntaxError('TODO');
+        }
     }
 
     // TODO: Need to parse other types of statements
@@ -741,7 +769,7 @@ p.parseStatement = function() {
 
 p.parseSourceElement = function() {
     // TODO: Need to parse function declaration at some point
-    return this.parseStatement();
+    return this.parseStatement(false);
 }
 
 p.parseProgram = function() {

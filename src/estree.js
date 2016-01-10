@@ -154,6 +154,18 @@ class ExpressionStatement extends Statement {
     }
 }
 
+class ContinueStatement extends Statement {
+    constructor(expression) {
+        super('ContinueStatement');
+    }
+}
+
+class BreakStatement extends Statement {
+    constructor(expression) {
+        super('BreakStatement');
+    }
+}
+
 class IfStatement extends Statement {
     constructor(test, consequent, alternate) {
         super('IfStatement');
@@ -237,6 +249,8 @@ e.SequenceExpression = SequenceExpression;
 e.BlockStatement = BlockStatement;
 e.EmptyStatement = EmptyStatement;
 e.ExpressionStatement = ExpressionStatement;
+e.ContinueStatement = ContinueStatement;
+e.BreakStatement = BreakStatement;
 e.IfStatement = IfStatement;
 e.WhileStatement = WhileStatement;
 e.ForStatement = ForStatement;

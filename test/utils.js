@@ -110,6 +110,18 @@ e.expectWithStatementFn = function(testValidator, bodyValidator) {
     };
 };
 
+e.expectContinueStatementFn = function() {
+    return function(ast) {
+        ast.type.should.be.eql('ContinueStatement');
+    };
+};
+
+e.expectBreakStatementFn = function() {
+    return function(ast) {
+        ast.type.should.be.eql('BreakStatement');
+    };
+};
+
 e.expectSequenceExpressionFn = function(validators) {
     return function(ast) {
         ast.type.should.be.eql('SequenceExpression');
