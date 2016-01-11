@@ -172,7 +172,8 @@ p.matchPrimaryExpression = function() {
     return this.matchKeywords("this") ||
         this.matchLiteral() ||
         this.matchIdentifier() ||
-        this.matchPunctuators("(");
+        this.matchPunctuators("(") ||
+        this.matchPunctuators("<");
 };
 
 p.matchUnaryExpression = function() {
@@ -195,6 +196,93 @@ p.matchLeftHandSideExpression = p.matchMemberExpression;
 /*
  * Actual recursive descent part of things
  */
+p.parseJSXElementName = function() {
+    const identifier = this.expectIdentifier();
+    if (this.matchPunctuators(":")) {
+        this.expectPunctuators(":");
+        const jsxIdentifier = this.expectIdentifier();
+        const namespacedName = new estree.Identifier(identifier.value + ":" + jsxIdentifier.value);
+        return namespacedName;
+    }
+    else if (this.matchPunctuators(".")) {
+        this.expectPunctuators(".");
+        let jsxIdentifier = this.expectIdentifier();
+        let memberExpression = new estree.Identifier(identifier.value + "." + jsxIdentifier.value);
+        while (this.matchPunctuators(".")) {
+            this.expectPunctuators(".");
+            jsxIdentifier = this.expectIdentifier();
+            memberExpression = new estree.Identifier(memberExpression.value + "." + jsxIdentifier.value);
+        }
+        return memberExpression;
+    }
+    else {
+        return identifier;
+    }
+};
+
+p.parseJSXChildren = function(expectedName) {
+    const children = [];
+
+    while(true) {
+        if (this.matchPunctuators("<")) {
+            this.expectPunctuators("<");
+
+            if (this.matchPunctuators("/")) {
+                this.expectPunctuators("/");
+
+                const name = this.parseJSXElementName();
+                this.expectPunctuators(">");
+
+                if (name.value === expectedName) {
+                    return children;
+                }
+                else {
+                    throw new SyntaxError('TODO');
+                }
+            }
+            else {
+                const jsxElement = this.parseJSXElement(true);
+                children.push(jsxElement);
+            }
+        }
+        else if (this.matchPunctuators("{")) {
+            this.expectPunctuators("{");
+
+            if (this.matchAssignmentExpression()) {
+                const expression = this.parseAssignmentExpression();
+                children.push(expression);
+            }
+
+            this.expectPunctuators("}");
+        }
+        else {
+            // TODO: Need lexer support for JSXText
+        }
+    }
+};
+
+p.parseJSXElement = function(skipInitialToken) {
+    if (!skipInitialToken) {
+        this.expectPunctuators("<");
+    }
+    const name = this.parseJSXElementName();
+
+    // TODO: Parse for attributes
+
+    // Check for self closing element
+    if (this.matchPunctuators("/")) {
+        this.expectPunctuators("/");
+        this.expectPunctuators(">");
+        return new estree.JSXElement(name, []);
+    }
+
+    this.expectPunctuators(">");
+
+    const children = this.parseJSXChildren(name.value);
+
+    return new estree.JSXElement(name, children);
+};
+
 p.parsePrimaryExpression = function() {
     if (this.matchKeywords("this")) {
         this.expectKeywords("this");
@@ -211,6 +299,9 @@ p.parsePrimaryExpression = function() {
         const expression = this.parseExpression();
         this.expectPunctuators(")");
         return expression;
+    }
+    else if (this.matchPunctuators("<")) {
+        return this.parseJSXElement();
     }
     return null;
 };

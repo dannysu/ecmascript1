@@ -250,3 +250,21 @@ e.expectNewExpressionFn = function(calleeValidator, argsValidators) {
 e.expectCallExpressionFn = function(calleeValidator, argsValidators) {
     return validateNewOrCallExpression('CallExpression', calleeValidator, argsValidators);
 };
+
+/*
+ * JSX Extension
+ */
+e.expectJSXElementFn = function(nameValidator, childrenValidators) {
+    return function(ast) {
+        ast.type.should.be.eql('JSXElement');
+
+        nameValidator(ast.name);
+
+        const children = ast.children;
+        children.length.should.be.eql(childrenValidators.length);
+        for (let child of children) {
+            const validator = childrenValidators.shift();
+            validator(child);
+        }
+    };
+};

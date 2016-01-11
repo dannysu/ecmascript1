@@ -282,3 +282,16 @@ e.WithStatement = WithStatement;
 e.FunctionDeclaration = FunctionDeclaration;
 e.VariableDeclaration = VariableDeclaration;
 e.VariableDeclarator = VariableDeclarator;
+
+/*
+ * JSX Extension
+ */
+class JSXElement extends Node {
+    constructor(name, children) {
+        super('JSXElement');
+        this.name = name;
+        this.children = children;
+    }
+}
+
+e.JSXElement = JSXElement;
