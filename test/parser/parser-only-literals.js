@@ -58,4 +58,57 @@ describe('parser', function() {
             ]);
         });
     });
+
+    describe('parse boolean expression statements', function() {
+        it('should return proper ESTree AST', function() {
+            const input = `
+                true;
+                false;
+            `;
+            const ast = parser.parse(input);
+
+            u.expectProgram(ast, [
+                u.expectExpressionStatementFn(
+                    u.expectLiteralFn('true')
+                ),
+                u.expectExpressionStatementFn(
+                    u.expectLiteralFn('false')
+                )
+            ]);
+        });
+    });
+
+    describe('parse null and this expression statements', function() {
+        it('should return proper ESTree AST', function() {
+            const input = `
+                null;
+                this;
+            `;
+            const ast = parser.parse(input);
+
+            u.expectProgram(ast, [
+                u.expectExpressionStatementFn(
+                    u.expectLiteralFn('null')
+                ),
+                u.expectExpressionStatementFn(
+                    u.expectThisExpressionFn()
+                )
+            ]);
+        });
+    });
+
+    describe('parse string literal', function() {
+        it('should return proper ESTree AST', function() {
+            const input = `
+                "This is a string";
+            `;
+            const ast = parser.parse(input);
+
+            u.expectProgram(ast, [
+                u.expectExpressionStatementFn(
+                    u.expectLiteralFn('"This is a string"')
+                )
+            ]);
+        });
+    });
 });
