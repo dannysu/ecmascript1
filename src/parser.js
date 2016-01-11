@@ -66,7 +66,7 @@ p.consume = function() {
 p.expectIdentifier = function() {
     const token = this.consume();
     if (token.type !== tokenTypes.identifier) {
-        throw new SyntaxError('TODO');
+        throw new SyntaxError(`Expecting Identifier, but got ${token.type} with value: ${token.value}`);
     }
 
     return new estree.Identifier(token.value);
@@ -75,16 +75,16 @@ p.expectIdentifier = function() {
 p.expectKeywords = function(keywords) {
     const token = this.consume();
     if (token.type !== tokenTypes.keyword) {
-        throw new SyntaxError('TODO');
+        throw new SyntaxError(`Expecting Keyword, but got ${token.type} with value: ${token.value}`);
     }
 
     if (Array.isArray(keywords)) {
         if (keywords.indexOf(token.value) < 0) {
-            throw new SyntaxError('TODO');
+            throw new SyntaxError(`Expected: ${keywords}    Actual: ${token.value}`);
         }
     }
     else if (keywords !== token.value) {
-        throw new SyntaxError('TODO');
+        throw new SyntaxError(`Expected: ${keywords}    Actual: ${token.value}`);
     }
 
     return token;
@@ -93,16 +93,16 @@ p.expectKeywords = function(keywords) {
 p.expectPunctuators = function(punctuators) {
     const token = this.consume();
     if (token.type !== tokenTypes.punctuator) {
-        throw new SyntaxError('TODO');
+        throw new SyntaxError(`Expecting Punctuator, but got ${token.type} with value: ${token.value}`);
     }
 
     if (Array.isArray(punctuators)) {
         if (punctuators.indexOf(token.value) < 0) {
-            throw new SyntaxError('TODO');
+            throw new SyntaxError(`Expected: ${punctuators}    Actual: ${token.value}`);
         }
     }
     else if (punctuators !== token.value) {
-        throw new SyntaxError('TODO');
+        throw new SyntaxError(`Expected: ${punctuators}    Actual: ${token.value}`);
     }
 
     return token;
@@ -111,7 +111,7 @@ p.expectPunctuators = function(punctuators) {
 p.expectLiteral = function() {
     const token = this.consume();
     if (!isLiteral(token)) {
-        throw new SyntaxError('TODO');
+        throw new SyntaxError(`Expecting Literal, but got ${token.type} with value: ${token.value}`);
     }
 
     return new estree.Literal(token.value);
@@ -469,8 +469,10 @@ p.parseExpression = function(optional) {
         expressions.push(expression);
     }
     else if (!optional) {
-        throw new SyntaxError('TODO');
+        const token = this.next();
+        throw new SyntaxError(`Expecting AssignmentExpression, but got ${token.type} with value: ${token.value}`);
     }
+
     while (this.matchPunctuators(",")) {
         this.expectPunctuators(",");
         expression = this.parseAssignmentExpression();
@@ -478,7 +480,8 @@ p.parseExpression = function(optional) {
             expressions.push(expression);
         }
         else if (!optional) {
-            throw new SyntaxError('TODO');
+            const token = this.next();
+            throw new SyntaxError(`Expecting AssignmentExpression, but got ${token.type} with value: ${token.value}`);
         }
     }
 
@@ -492,7 +495,7 @@ p.parseExpression = function(optional) {
         return null;
     }
     else {
-        throw new SyntaxError('TODO');
+        throw new Error(`Shouldn't ever be here`);
     }
 };
 
@@ -503,7 +506,8 @@ p.parseVariableDeclaration = function() {
         this.expectPunctuators("=");
         assignment = this.parseAssignmentExpression();
         if (assignment === null) {
-            throw new SyntaxError('TODO');
+            const token = this.next();
+            throw new SyntaxError(`Expecting AssignmentExpression, but got ${token.type} with value: ${token.value}`);
         }
     }
 
@@ -623,7 +627,7 @@ p.parseForStatement = function() {
 
             // Make sure the ast contains only one identifier and at most one initializer
             if (ast.declarations.length !== 1) {
-                throw new SyntaxError('TODO');
+                throw new SyntaxError(`Expecting only one Identifier and at most one Initializer in a ForIn statement`);
             }
 
             this.expectKeywords("in");
@@ -762,7 +766,7 @@ p.parseStatement = function(insideIteration, insideFunction) {
             return this.parseContinueStatement();
         }
         else {
-            throw new SyntaxError('TODO');
+            throw new SyntaxError(`continue; statement can only be inside an iteration`);
         }
     }
     else if (this.matchKeywords("break")) {
@@ -770,7 +774,7 @@ p.parseStatement = function(insideIteration, insideFunction) {
             return this.parseBreakStatement();
         }
         else {
-            throw new SyntaxError('TODO');
+            throw new SyntaxError(`break; statement can only be inside an iteration`);
         }
     }
     else if (this.matchKeywords("return")) {
@@ -778,12 +782,12 @@ p.parseStatement = function(insideIteration, insideFunction) {
             return this.parseReturnStatement();
         }
         else {
-            throw new SyntaxError('TODO');
+            throw new SyntaxError(`return statement can only be inside a function`);
         }
     }
-
-    // TODO: Need to parse other types of statements
-    return null;
+    else {
+        throw new SyntaxError(`Unexpected token`);
+    }
 };
 
 p.parseFunction = function() {
