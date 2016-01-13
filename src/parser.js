@@ -832,7 +832,7 @@ p.parseProgram = function() {
     body.push(this.parseSourceElement());
 
     // Check to see if there are more SourceElement
-    while (this.matchStatement()) {
+    while (this.matchStatement() || this.matchKeywords("function")) {
         body.push(this.parseSourceElement());
     }
 
