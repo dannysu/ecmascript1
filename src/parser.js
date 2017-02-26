@@ -381,7 +381,7 @@ p.parseUnaryExpression = function() {
 // left-to-right associtivity in this case.
 p.parseBinaryExpression = function(minPrecedence) {
     const punctuators = [
-        '||', '&&', '|', '^', '&', '==', '!=', '<', '>', '<=', '=>',
+        '||', '&&', '|', '^', '&', '==', '!=', '<', '>', '<=', '>=',
         '<<', '>>', '>>>', '+', '-', '*', '/', '%'
     ];
 
